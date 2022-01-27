@@ -3,7 +3,7 @@
 
 Imports System.Runtime.InteropServices
 
-Public Class HUFFMANTREE
+Public Class VHuffman
     Private Const PROGRESS_CALCFREQUENCY = 7
     Private Const PROGRESS_CALCCRC = 5
     Private Const PROGRESS_ENCODING = 88
@@ -11,27 +11,35 @@ Public Class HUFFMANTREE
     Private Const PROGRESS_CHECKCRC = 11
     Event Progress(Procent As Integer)
 
-    Private Structure HUFFMANTREE
+    Private Class HuffmanTree
         Public ParentNode As Integer
         Public RightNode As Integer
         Public LeftNode As Integer
         Public Value As Integer
         Public Weight As Long
-    End Structure
+    End Class
 
-    Private Structure ByteArray
+    Private Class ByteArray
         Public Count As Byte
         Public Data() As Byte
-    End Structure
+
+        Function Clone() As ByteArray
+            Dim newByteArray As ByteArray
+            newByteArray = New ByteArray()
+            newByteArray.Count = Count
+            newByteArray.Data = Data.Clone()
+            Return newByteArray
+        End Function
+    End Class
 
     'original:
     'Private Declare Sub CopyMem Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
     'example fix:
     '<System.Runtime.InteropServices.MarshalAsAttribute(System.Runtime.InteropServices.UnmanagedType.AsAny)> ByVal o As Object)
-    Private Declare Sub CopyMem Lib "kernel32" Alias "RtlMoveMemory" (<MarshalAsAttribute(UnmanagedType.AsAny)> Destination As Object, <MarshalAsAttribute(UnmanagedType.AsAny)> Source As Object, ByVal Length As Long)
+    'Private Declare Sub CopyMem Lib "kernel32" Alias "RtlMoveMemory" (<MarshalAsAttribute(UnmanagedType.AsAny)> Destination As Object, <MarshalAsAttribute(UnmanagedType.AsAny)> Source As Object, ByVal Length As Long)
 
     'Create Huffman tree 
-    Private Sub CreateTree(Nodes() As HUFFMANTREE, NodesCount As Long, CharX As Long, Bytes As ByteArray)
+    Private Function CreateTree(Nodes() As HuffmanTree, NodesCount As Long, CharC As Long, Bytes As ByteArray)
         Dim a As Integer, NodeIndex As Long
 
         NodeIndex = 0
@@ -60,27 +68,36 @@ Public Class HUFFMANTREE
                 Stop
             End If
         Next
-        Nodes(NodeIndex).Value = CharX
-    End Sub
+        Nodes(NodeIndex).Value = CharC
+        Return NodesCount
+    End Function
+
     'Encode routine 
-    Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
-        Dim i As Long, j As Long, CharX As Byte, BitPos As Byte, lNode1 As Long
+    Public Function EncodeByte(InputArray() As Byte, ByteLen As Long) As Byte()
+        Dim i As Long, j As Long, CharC As Byte, BitPos As Byte, lNode1 As Long
         Dim lNode2 As Long, lNodes As Long, lLength As Long, Count As Integer
         Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, ByteValue As Byte
         Dim ResultLen As Long, Bytes As ByteArray, NodesCount As Integer, NewProgress As Integer
         Dim CurrProgress As Integer, BitValue(0 To 7) As Byte, CharCount(0 To 255) As Long
-        Dim Nodes(0 To 511) As HUFFMANTREE, CharValue(0 To 255) As ByteArray
+        Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
 
         If (ByteLen = 0) Then
-            ReDim Preserve ByteArray(0 To ByteLen + 3)
-            If (ByteLen > 0) Then Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
-            ByteArray(0) = 72
-            ByteArray(1) = 69
-            ByteArray(2) = 48
-            ByteArray(3) = 13
-            Exit Sub
+            ReDim Preserve InputArray(0 To ByteLen + 3)
+            If (ByteLen > 0) Then
+                'Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
+                Array.Copy(InputArray, 0, InputArray, 4, ByteLen)
+            End If
+            ' "HE0\r"
+            InputArray(0) = 72
+            InputArray(1) = 69
+            InputArray(2) = 48
+            InputArray(3) = 13
+            Debug("0 ByteLen")
+            Return InputArray
+            'Exit Function
         End If
 
+        ' "HE3\r"
         ReDim Result(0 To 522)
         Result(0) = 72
         Result(1) = 69
@@ -89,16 +106,17 @@ Public Class HUFFMANTREE
         ResultLen = 4
 
         For i = 0 To (ByteLen - 1)
-            CharCount(ByteArray(i)) = CharCount(ByteArray(i)) + 1
+            CharCount(InputArray(i)) = CharCount(InputArray(i)) + 1
             If (i Mod 1000 = 0) Then
                 NewProgress = i / ByteLen * PROGRESS_CALCFREQUENCY
                 If (NewProgress <> CurrProgress) Then
                     CurrProgress = NewProgress
-                    RaiseEvent Progress(CurrProgress)
+                    'RaiseEvent Progress(CurrProgress)
                 End If
             End If
         Next
         For i = 0 To 255
+            Nodes(i) = New HuffmanTree()
             If (CharCount(i) > 0) Then
                 With Nodes(NodesCount)
                     .Weight = CharCount(i)
@@ -153,39 +171,54 @@ Public Class HUFFMANTREE
             Nodes(lNode2).ParentNode = NodesCount
             NodesCount = NodesCount + 1
         Next
+
+        Bytes = New ByteArray() ' (needed if bytes is a class instead of a structure)
+        For i = 0 To 255
+            CharValue(i) = New ByteArray()
+        Next
+
         ReDim Bytes.Data(0 To 255)
         Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, CharValue)
 
+        ' Calculate Huffman Encoded Length
         For i = 0 To 255
-            If (CharCount(i) > 0) Then lLength = lLength +
-           CharValue(i).Count * CharCount(i)
+            If (CharCount(i) > 0) Then
+                lLength = lLength + CharValue(i).Count * CharCount(i)
+                Debug($"char {i}: {CharCount(i)}x {CharValue(i).Count} bits ({CharValue(i).Count / 8} bytes)")
+            End If
         Next
         lLength = IIf(lLength Mod 8 = 0, lLength \ 8, lLength \ 8 + 1)
 
-        If ((lLength = 0) Or (lLength > ByteLen)) Then
-            ReDim Preserve ByteArray(0 To ByteLen + 3)
-            Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
-            ByteArray(0) = 72
-            ByteArray(1) = 69
-            ByteArray(2) = 48
-            ByteArray(3) = 13
-            Exit Sub
+        If (lLength = 0) Or (lLength > ByteLen) Then
+            ReDim Preserve InputArray(0 To ByteLen + 3)
+            'Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
+            Array.Copy(InputArray, 0, InputArray, 4, ByteLen)
+            InputArray(0) = 72
+            InputArray(1) = 69
+            InputArray(2) = 48
+            InputArray(3) = 13
+            Debug($"HE0; lLength:{lLength} > ByteLen:{ByteLen}")
+            Return InputArray
+            'Exit Function
         End If
 
-        CharX = 0
+        CharC = 0
         For i = 0 To (ByteLen - 1)
-            CharX = CharX Xor ByteArray(i)
+            CharC = CharC Xor InputArray(i)
             If (i Mod 10000 = 0) Then
                 NewProgress = i / ByteLen * PROGRESS_CALCCRC + PROGRESS_CALCFREQUENCY
                 If (NewProgress <> CurrProgress) Then
                     CurrProgress = NewProgress
-                    RaiseEvent Progress(CurrProgress)
+                    'RaiseEvent Progress(CurrProgress)
                 End If
             End If
         Next
-        Result(ResultLen) = CharX
+        Result(ResultLen) = CharC
         ResultLen = ResultLen + 1
-        Call CopyMem(Result(ResultLen), ByteLen, 4)
+        'Call CopyMem(Result(ResultLen), ByteLen, 4)
+        Array.Copy(BitConverter.GetBytes(Convert.ToUInt32(ByteLen)), 0, Result, ResultLen, 4)
+        Debug($"Encode ByteLen:{ByteLen}")
+
         ResultLen = ResultLen + 4
         BitValue(0) = 2 ^ 0
         BitValue(1) = 2 ^ 1
@@ -197,9 +230,14 @@ Public Class HUFFMANTREE
         BitValue(7) = 2 ^ 7
         Count = 0
         For i = 0 To 255
+            'if we allow nulls then need to use:
+            'If (CharValue(i) IsNot Nothing AndAlso CharValue(i).Count > 0) Then Count = Count + 1
             If (CharValue(i).Count > 0) Then Count = Count + 1
         Next
-        Call CopyMem(Result(ResultLen), Count, 2)
+        'Call CopyMem(Result(ResultLen), Count, 2)
+        Array.Copy(BitConverter.GetBytes(Convert.ToUInt16(Count)), 0, Result, ResultLen, 2)
+        Debug($"Encoding count:{Count}")
+
         ResultLen = ResultLen + 2
         Count = 0
         For i = 0 To 255
@@ -220,8 +258,7 @@ Public Class HUFFMANTREE
             With CharValue(i)
                 If (.Count > 0) Then
                     For j = 0 To (.Count - 1)
-                        If (.Data(j)) Then ByteValue = ByteValue +
-                       BitValue(BitPos)
+                        If (.Data(j)) Then ByteValue = ByteValue + BitValue(BitPos)
                         BitPos = BitPos + 1
                         If (BitPos = 8) Then
                             Result(ResultLen) = ByteValue
@@ -240,38 +277,48 @@ Public Class HUFFMANTREE
 
         ReDim Preserve Result(0 To ResultLen - 1 + lLength)
 
-        CharX = 0
+        CharC = 0
         BitPos = 0
         For i = 0 To (ByteLen - 1)
-            With CharValue(ByteArray(i))
+            With CharValue(InputArray(i))
                 For j = 0 To (.Count - 1)
-                    If (.Data(j) = 1) Then CharX = CharX + BitValue(BitPos)
+                    If (.Data(j) = 1) Then CharC = CharC + BitValue(BitPos)
                     BitPos = BitPos + 1
                     If (BitPos = 8) Then
-                        Result(ResultLen) = CharX
+                        Result(ResultLen) = CharC
                         ResultLen = ResultLen + 1
                         BitPos = 0
-                        CharX = 0
+                        CharC = 0
                     End If
                 Next
             End With
             If (i Mod 10000 = 0) Then
-                NewProgress = i / ByteLen * PROGRESS_ENCODING +
-               PROGRESS_CALCCRC + PROGRESS_CALCFREQUENCY
+                NewProgress = i / ByteLen * PROGRESS_ENCODING + PROGRESS_CALCCRC + PROGRESS_CALCFREQUENCY
                 If (NewProgress <> CurrProgress) Then
                     CurrProgress = NewProgress
-                    RaiseEvent Progress(CurrProgress)
+                    'RaiseEvent Progress(CurrProgress)
                 End If
             End If
         Next
         If (BitPos > 0) Then
-            Result(ResultLen) = CharX
+            Result(ResultLen) = CharC
             ResultLen = ResultLen + 1
         End If
-        ReDim ByteArray(0 To ResultLen - 1)
-        Call CopyMem(ByteArray(0), Result(0), ResultLen)
-        If (CurrProgress <> 100) Then RaiseEvent Progress(100)
-    End Sub
+        ReDim InputArray(0 To ResultLen - 1)
+        'Call CopyMem(ByteArray(0), Result(0), ResultLen)
+        Array.Copy(Result, 0, InputArray, 0, ResultLen) ' TODO: just return Result?
+        If (CurrProgress <> 100) Then
+            'RaiseEvent Progress(100)
+        End If
+        'EncodeByte = Result
+
+        'added:
+        ReDim Preserve Result(0 To ResultLen - 1)
+        Debug("fail2")
+        'Return Result
+        Return InputArray
+    End Function
+
     Public Function DecodeString(Text As String) As String
         Dim ByteArray() As Byte
         'ByteArray() = StrConv(Text, vbFromUnicode)
@@ -291,44 +338,72 @@ Public Class HUFFMANTREE
     End Function
 
     'Decode routine 
-    Public Sub DecodeByte(ByteArray() As Byte, ByteLen As Long)
-        Dim i As Long, j As Long, Pos As Long, CharX As Byte, CurrPos As Long
+    Public Function DecodeByte(InputBytes() As Byte, ByteLen As Long) As Byte()
+        Dim i As Long, j As Long, Pos As Long, CharC As Byte, CurrPos As Long
         Dim Count As Integer, CheckSum As Byte, Result() As Byte, BitPos As Integer
         Dim NodeIndex As Long, ByteValue As Byte, ResultLen As Long, NodesCount As Long
         Dim lResultLen As Long, NewProgress As Integer, CurrProgress As Integer, BitValue(0 To 7) As Byte
-        Dim Nodes(0 To 511) As HUFFMANTREE, CharValue(0 To 255) As ByteArray
+        Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
 
-        If (ByteArray(0) <> 72) Or (ByteArray(1) <> 69) Or (ByteArray(3) <> 13) Then
+        ' check for header: "HE0\r" or "HE3\r"
+        If (InputBytes(0) <> 72) Or (InputBytes(1) <> 69) Or (InputBytes(3) <> 13) Then
 
-        ElseIf (ByteArray(2) = 48) Then
-            Call CopyMem(ByteArray(0), ByteArray(4), ByteLen - 4)
-            ReDim Preserve ByteArray(0 To ByteLen - 5)
+        ElseIf (InputBytes(2) = 48) Then
+            'Call CopyMem(ByteArray(0), ByteArray(4), ByteLen - 4)
+            Array.Copy(InputBytes, 4, InputBytes, 0, ByteLen - 4)
+            ReDim Preserve InputBytes(0 To ByteLen - 5)
+            'Exit Sub
+            Debug("successful decode null string")
+            Return New Byte() {}
 
-            Exit Sub
-
-        ElseIf (ByteArray(2) <> 51) Then
+        ElseIf (InputBytes(2) <> 51) Then
             Const ErrorDescription As String = "The data either was not compressed with HE3 or is corrupt (identification string not found)"
             Err.Raise(vbObjectError, "HuffmanDecode()", ErrorDescription)
-            Exit Sub
+            'Exit Sub
+            Debug("decode fail 5 no header")
+            Return New Byte() {}
 
         End If
 
         CurrPos = 5
-        CheckSum = ByteArray(CurrPos - 1)
+        CheckSum = InputBytes(CurrPos - 1)
         CurrPos = CurrPos + 1
 
-        Call CopyMem(ResultLen, ByteArray(CurrPos - 1), 4)
+        'Call CopyMem(ResultLen, ByteArray(CurrPos - 1), 4)
+        'Array.Copy(ByteArray, CurrPos - 1, resultLenBytes, 0, 4) ' buggy
+        ResultLen = BitConverter.ToInt32(InputBytes, CurrPos - 1)
+        Debug($"Decoded ResultLen:{ResultLen}")
+
+
         CurrPos = CurrPos + 4
         lResultLen = ResultLen
-        If (ResultLen = 0) Then Exit Sub
+        'If (ResultLen = 0) Then Exit Sub
+        If (ResultLen = 0) Then
+            Debug("fail6?")
+            'Return New Byte() {}
+            Return InputBytes
+        End If
         ReDim Result(0 To ResultLen - 1)
-        Call CopyMem(Count, ByteArray(CurrPos - 1), 2)
+        'Call CopyMem(Count, ByteArray(CurrPos - 1), 2)
+        'Array.Copy(InputBytes, CurrPos - 1, BitConverter.GetBytes(Count), 0, 2) ' buggy
+        Count = BitConverter.ToUInt16(InputBytes, CurrPos - 1)
+        Debug($"Decoded Count:{Count}")
+
         CurrPos = CurrPos + 2
 
+        'TODO: optimization: don't declare all when don't need them all
+        For i = 0 To 255
+            CharValue(i) = New ByteArray()
+        Next
+
+        For i = 0 To 511
+            Nodes(i) = New HuffmanTree()
+        Next
+
         For i = 1 To Count
-            With CharValue(ByteArray(CurrPos - 1))
+            With CharValue(InputBytes(CurrPos - 1))
                 CurrPos = CurrPos + 1
-                .Count = ByteArray(CurrPos - 1)
+                .Count = InputBytes(CurrPos - 1)
                 CurrPos = CurrPos + 1
                 ReDim .Data(0 To .Count - 1)
             End With
@@ -343,7 +418,7 @@ Public Class HUFFMANTREE
         BitValue(6) = 2 ^ 6
         BitValue(7) = 2 ^ 7
 
-        ByteValue = ByteArray(CurrPos - 1)
+        ByteValue = InputBytes(CurrPos - 1)
         CurrPos = CurrPos + 1
         BitPos = 0
 
@@ -354,7 +429,7 @@ Public Class HUFFMANTREE
                         If (ByteValue And BitValue(BitPos)) Then .Data(j) = 1
                         BitPos = BitPos + 1
                         If (BitPos = 8) Then
-                            ByteValue = ByteArray(CurrPos - 1)
+                            ByteValue = InputBytes(CurrPos - 1)
                             CurrPos = CurrPos + 1
                             BitPos = 0
                         End If
@@ -372,18 +447,21 @@ Public Class HUFFMANTREE
         Nodes(0).Value = -1
 
         For i = 0 To 255
-            Call CreateTree(Nodes, NodesCount, i, CharValue(i))
+            NodesCount = CreateTree(Nodes, NodesCount, i, CharValue(i))
         Next
 
         ResultLen = 0
         For CurrPos = CurrPos To ByteLen
-            ByteValue = ByteArray(CurrPos - 1)
+            ByteValue = InputBytes(CurrPos - 1)
             For BitPos = 0 To 7
                 If (ByteValue And BitValue(BitPos)) Then NodeIndex = Nodes(NodeIndex).RightNode Else NodeIndex = Nodes(NodeIndex).LeftNode
                 If (Nodes(NodeIndex).Value > -1) Then
                     Result(ResultLen) = Nodes(NodeIndex).Value
                     ResultLen = ResultLen + 1
-                    If (ResultLen = lResultLen) Then GoTo DecodeFinished
+                    If (ResultLen = lResultLen) Then
+                        Debug("DecodeFinished")
+                        GoTo DecodeFinished
+                    End If
                     NodeIndex = 0
                 End If
             Next
@@ -391,47 +469,57 @@ Public Class HUFFMANTREE
                 NewProgress = CurrPos / ByteLen * PROGRESS_DECODING
                 If (NewProgress <> CurrProgress) Then
                     CurrProgress = NewProgress
-                    RaiseEvent Progress(CurrProgress)
+                    'RaiseEvent Progress(CurrProgress)
                 End If
             End If
         Next
 DecodeFinished:
-        CharX = 0
+        CharC = 0
         For i = 0 To (ResultLen - 1)
-            CharX = CharX Xor Result(i)
+            CharC = CharC Xor Result(i)
             If (i Mod 10000 = 0) Then
                 NewProgress = i / ResultLen * PROGRESS_CHECKCRC + PROGRESS_DECODING
                 If (NewProgress <> CurrProgress) Then
                     CurrProgress = NewProgress
-                    RaiseEvent Progress(CurrProgress)
+                    'RaiseEvent Progress(CurrProgress)
                 End If
             End If
         Next
-        If (CharX <> CheckSum) Then Err.Raise(vbObjectError, "clsHuffman.Decode()", "The data might be corrupted (checksum did not match expected value)")
-        ReDim ByteArray(0 To ResultLen - 1)
-        Call CopyMem(ByteArray(0), Result(0), ResultLen)
-        If (CurrProgress <> 100) Then RaiseEvent Progress(100)
+        If (CharC <> CheckSum) Then Err.Raise(vbObjectError, "clsHuffman.Decode()", "The data might be corrupted (checksum did not match expected value)")
+        ReDim InputBytes(0 To ResultLen - 1)
+        'Call CopyMem(ByteArray(0), Result(0), ResultLen)
+        Debug($"Final ResultLen:{ResultLen}")
+        Array.Copy(Result, 0, InputBytes, 0, ResultLen)
+
+        If (CurrProgress <> 100) Then
+            'RaiseEvent Progress(100)
+        End If
+        Debug("success")
+        Return InputBytes
+    End Function
+
+    Private Sub Debug(text As String)
+        Console.WriteLine("VHuffman debug: " + text)
     End Sub
 
-    Private Sub CreateBitSequences(Nodes() As HUFFMANTREE, ByVal NodeIndex As Integer, Bytes As ByteArray, CharValue() As ByteArray)
+    Private Sub CreateBitSequences(Nodes() As HuffmanTree, ByVal NodeIndex As Integer, Bytes As ByteArray, CharValue() As ByteArray)
         Dim NewBytes As ByteArray
+
         If (Nodes(NodeIndex).Value > -1) Then
             CharValue(Nodes(NodeIndex).Value) = Bytes
             Exit Sub
         End If
         If (Nodes(NodeIndex).LeftNode > -1) Then
-            NewBytes = Bytes
+            NewBytes = Bytes.Clone()
             NewBytes.Data(NewBytes.Count) = 0
             NewBytes.Count = NewBytes.Count + 1
-            Call CreateBitSequences(Nodes, Nodes(NodeIndex).LeftNode,
-           NewBytes, CharValue)
+            Call CreateBitSequences(Nodes, Nodes(NodeIndex).LeftNode, NewBytes, CharValue)
         End If
         If (Nodes(NodeIndex).RightNode > -1) Then
-            NewBytes = Bytes
+            NewBytes = Bytes.Clone()
             NewBytes.Data(NewBytes.Count) = 1
             NewBytes.Count = NewBytes.Count + 1
-            Call CreateBitSequences(Nodes, Nodes(NodeIndex).RightNode,
-           NewBytes, CharValue)
+            Call CreateBitSequences(Nodes, Nodes(NodeIndex).RightNode, NewBytes, CharValue)
         End If
     End Sub
 

@@ -5,6 +5,11 @@ VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "VaraHuffman", "VaraHuffman\VaraHuffman.vbproj", "{CAEA41AF-9BEC-4AD5-8D5F-1D2FF3A19B77}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VaraHuffmanTesting", "..\VaraHuffmanTest\VaraHuffmanTesting\VaraHuffmanTesting.csproj", "{8DE8C9A2-38D2-4486-A542-D688DC3506D1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CAEA41AF-9BEC-4AD5-8D5F-1D2FF3A19B77} = {CAEA41AF-9BEC-4AD5-8D5F-1D2FF3A19B77}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +20,10 @@ Global
 		{CAEA41AF-9BEC-4AD5-8D5F-1D2FF3A19B77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CAEA41AF-9BEC-4AD5-8D5F-1D2FF3A19B77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CAEA41AF-9BEC-4AD5-8D5F-1D2FF3A19B77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DE8C9A2-38D2-4486-A542-D688DC3506D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DE8C9A2-38D2-4486-A542-D688DC3506D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DE8C9A2-38D2-4486-A542-D688DC3506D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DE8C9A2-38D2-4486-A542-D688DC3506D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
