@@ -154,7 +154,7 @@ Public Class HUFFMANTREE
             NodesCount = NodesCount + 1
         Next
         ReDim Bytes.Data(0 To 255)
-        Call CreateBitSequences(Nodes(), NodesCount - 1, Bytes, CharValue)
+        Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, CharValue)
 
         For i = 0 To 255
             If (CharCount(i) > 0) Then lLength = lLength +
@@ -274,16 +274,22 @@ Public Class HUFFMANTREE
     End Sub
     Public Function DecodeString(Text As String) As String
         Dim ByteArray() As Byte
-        ByteArray() = StrConv(Text, vbFromUnicode)
+        'ByteArray() = StrConv(Text, vbFromUnicode)
+        ByteArray = System.Text.Encoding.GetEncoding(1252).GetBytes(Text)
         Call DecodeByte(ByteArray, Len(Text))
-        DecodeString = StrConv(ByteArray(), vbUnicode)
+        'DecodeString = StrConv(ByteArray(), vbUnicode)
+        DecodeString = System.Text.Encoding.GetEncoding(1252).GetString(ByteArray)
+
     End Function
     Public Function EncodeString(Text As String) As String
         Dim ByteArray() As Byte
-        ByteArray() = StrConv(Text, vbFromUnicode)
+        'ByteArray() = StrConv(Text, vbFromUnicode)
+        ByteArray = System.Text.Encoding.GetEncoding(1252).GetBytes(Text)
         Call EncodeByte(ByteArray, Len(Text))
-        EncodeString = StrConv(ByteArray(), vbUnicode)
+        'EncodeString = StrConv(ByteArray(), vbUnicode)
+        EncodeString = System.Text.Encoding.GetEncoding(1252).GetString(ByteArray)
     End Function
+
     'Decode routine 
     Public Sub DecodeByte(ByteArray() As Byte, ByteLen As Long)
         Dim i As Long, j As Long, Pos As Long, CharX As Byte, CurrPos As Long
@@ -366,7 +372,7 @@ Public Class HUFFMANTREE
         Nodes(0).Value = -1
 
         For i = 0 To 255
-            Call CreateTree(Nodes(), NodesCount, i, CharValue(i))
+            Call CreateTree(Nodes, NodesCount, i, CharValue(i))
         Next
 
         ResultLen = 0
@@ -406,6 +412,7 @@ DecodeFinished:
         Call CopyMem(ByteArray(0), Result(0), ResultLen)
         If (CurrProgress <> 100) Then RaiseEvent Progress(100)
     End Sub
+
     Private Sub CreateBitSequences(Nodes() As HUFFMANTREE, ByVal NodeIndex As Integer, Bytes As ByteArray, CharValue() As ByteArray)
         Dim NewBytes As ByteArray
         If (Nodes(NodeIndex).Value > -1) Then
@@ -416,14 +423,14 @@ DecodeFinished:
             NewBytes = Bytes
             NewBytes.Data(NewBytes.Count) = 0
             NewBytes.Count = NewBytes.Count + 1
-            Call CreateBitSequences(Nodes(), Nodes(NodeIndex).LeftNode,
+            Call CreateBitSequences(Nodes, Nodes(NodeIndex).LeftNode,
            NewBytes, CharValue)
         End If
         If (Nodes(NodeIndex).RightNode > -1) Then
             NewBytes = Bytes
             NewBytes.Data(NewBytes.Count) = 1
             NewBytes.Count = NewBytes.Count + 1
-            Call CreateBitSequences(Nodes(), Nodes(NodeIndex).RightNode,
+            Call CreateBitSequences(Nodes, Nodes(NodeIndex).RightNode,
            NewBytes, CharValue)
         End If
     End Sub
