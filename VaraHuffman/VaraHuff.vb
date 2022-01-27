@@ -97,7 +97,7 @@ Public Class VHuffman
             'Exit Function
         End If
 
-        ' "HE3\r"
+        'Result[0 to 3]: header/identifier "HE3\r"
         ReDim Result(0 To 522)
         Result(0) = 72
         Result(1) = 69
@@ -172,15 +172,16 @@ Public Class VHuffman
             NodesCount = NodesCount + 1
         Next
 
-        Bytes = New ByteArray() ' (needed if bytes is a class instead of a structure)
         For i = 0 To 255
             CharValue(i) = New ByteArray()
         Next
 
+        Bytes = New ByteArray() ' (needed because bytes is a class instead of a structure/type)
+
         ReDim Bytes.Data(0 To 255)
         Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, CharValue)
 
-        ' Calculate Huffman Encoded Length
+        ' Calculate Huffman Encoded Message Length (though excludes huffman tables)
         For i = 0 To 255
             If (CharCount(i) > 0) Then
                 lLength = lLength + CharValue(i).Count * CharCount(i)
@@ -190,6 +191,8 @@ Public Class VHuffman
         lLength = IIf(lLength Mod 8 = 0, lLength \ 8, lLength \ 8 + 1)
 
         If (lLength = 0) Or (lLength > ByteLen) Then
+            ' Huffman compression doesn't improve size. Send as original bytes with "HE0\r" header.
+
             ReDim Preserve InputArray(0 To ByteLen + 3)
             'Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
             Array.Copy(InputArray, 0, InputArray, 4, ByteLen)
@@ -213,13 +216,16 @@ Public Class VHuffman
                 End If
             End If
         Next
+        'Result[5]: all input bytes of the uncompressed message XOR'd togethered as a "CRC" check (kind of like parity bits per bit position)
         Result(ResultLen) = CharC
         ResultLen = ResultLen + 1
+
+        'Result[6-9]: length of decoded message in bytes
         'Call CopyMem(Result(ResultLen), ByteLen, 4)
         Array.Copy(BitConverter.GetBytes(Convert.ToUInt32(ByteLen)), 0, Result, ResultLen, 4)
         Debug($"Encode ByteLen:{ByteLen}")
-
         ResultLen = ResultLen + 4
+
         BitValue(0) = 2 ^ 0
         BitValue(1) = 2 ^ 1
         BitValue(2) = 2 ^ 2
@@ -234,14 +240,20 @@ Public Class VHuffman
             'If (CharValue(i) IsNot Nothing AndAlso CharValue(i).Count > 0) Then Count = Count + 1
             If (CharValue(i).Count > 0) Then Count = Count + 1
         Next
+
         'Call CopyMem(Result(ResultLen), Count, 2)
         Array.Copy(BitConverter.GetBytes(Convert.ToUInt16(Count)), 0, Result, ResultLen, 2)
         Debug($"Encoding count:{Count}")
-
         ResultLen = ResultLen + 2
-        Count = 0
+        'Result[10-11]: Number of nodes in Huffman tree (= how many unique bytes appear in message)
+
+
+        Count = 0 ' Reusing Count to for length (in bits) of huffman symbol table that goes at the end of message
         For i = 0 To 255
             If (CharValue(i).Count > 0) Then
+                'Result[12]: First character (0-255) 
+                'Result[13]: Number of bits in its Huffman encoding
+                'Continue up to Result[524] (theoretical max if all characters are used)
                 Result(ResultLen) = i
                 ResultLen = ResultLen + 1
                 Result(ResultLen) = CharValue(i).Count
@@ -252,6 +264,7 @@ Public Class VHuffman
 
         ReDim Preserve Result(0 To ResultLen + Count \ 8)
 
+        ' Huffman encoded message
         BitPos = 0
         ByteValue = 0
         For i = 0 To 255
@@ -271,13 +284,15 @@ Public Class VHuffman
             End With
         Next
         If (BitPos > 0) Then
-            Result(ResultLen) = ByteValue
+            Result(ResultLen) = ByteValue ' write final byte of message (0 padded)
             ResultLen = ResultLen + 1
         End If
 
+        ' resize again!?
         ReDim Preserve Result(0 To ResultLen - 1 + lLength)
 
-        CharC = 0
+        CharC = 0 ' Final CRC check (Reusing this variable)
+        ' or is it the huffman codes listed out?
         BitPos = 0
         For i = 0 To (ByteLen - 1)
             With CharValue(InputArray(i))
@@ -312,14 +327,19 @@ Public Class VHuffman
         End If
         'EncodeByte = Result
 
-        'added:
+        'Originally copied result back over InputArray:
+        'ReDim ByteArray(0 To ResultLen - 1) ' originally
+        'Call CopyMem(InputArray(0), Result(0), ResultLen)
+
         ReDim Preserve Result(0 To ResultLen - 1)
         Debug("fail2")
         'Return Result
         Return InputArray
     End Function
 
-    Public Function DecodeString(Text As String) As String
+    Private Function DecodeString(Text As String) As String
+        ' this function doesn't work
+
         Dim ByteArray() As Byte
         'ByteArray() = StrConv(Text, vbFromUnicode)
         ByteArray = System.Text.Encoding.GetEncoding(1252).GetBytes(Text)
@@ -328,7 +348,9 @@ Public Class VHuffman
         DecodeString = System.Text.Encoding.GetEncoding(1252).GetString(ByteArray)
 
     End Function
-    Public Function EncodeString(Text As String) As String
+    Private Function EncodeString(Text As String) As String
+        ' this function doesn't work
+
         Dim ByteArray() As Byte
         'ByteArray() = StrConv(Text, vbFromUnicode)
         ByteArray = System.Text.Encoding.GetEncoding(1252).GetBytes(Text)
