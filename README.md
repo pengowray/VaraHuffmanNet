@@ -32,10 +32,10 @@ There are two message formats, plain bytes and Huffman Encoded.
 
 * Bytes 0 to 4: begin with the 4 byte header `48 45 33 0D` "HE3\r"  
   *  Presumably stands for "Huffman Encoding 3". (Anyone know which version of which VARA products this was introduced or is compatible with?)
-  *  Note: '3' instead of '0' used for empty and plain text messages
+  *  Only byte 2 differs from Plain Bytes message header (ascii 3 vs 0)
   *  Messages which don't contain either header ("HE0\r" nor "HE3\r") are rejected
 * Byte 5 is referred in the source code as a [CRC](https://en.wikipedia.org/wiki/Cyclic_redundancy_check). 
-  *  It's calculated by XORing all bytes of original message (uncompressed without the header). It is _not_ CRC-8.
+  *  It's calculated by XORing all bytes of original message (uncompressed without the header), like a sort of parity check. It is _not_ CRC-8.
 * Bytes 6,7,8,9: Integer with length of decoded message in bytes (without header). Little endian I guess.
 * Bytes 10 and 11: SymbolCount: The number of unique/distinct symbols (8-bit characters) used in the message
   *  Same as the number of entries in the Huffman Index (or half its length in bytes)
