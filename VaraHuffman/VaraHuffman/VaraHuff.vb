@@ -6,6 +6,7 @@ Imports System.Runtime.InteropServices
 Public Class VHuffman
 
     Private Class HuffmanTree
+        ' do we need all these variables? probably
         Public ParentNode As Integer
         Public RightNode As Integer
         Public LeftNode As Integer
@@ -68,9 +69,9 @@ Public Class VHuffman
 
     'Encode routine 
     Public Function EncodeByte(InputArray() As Byte, ByteLen As Long, Optional ForceHuffman As Boolean = False) As Byte()
-        Dim i As Long, j As Long, CharC As Byte, BitPos As Byte, lNode1 As Long
-        Dim lNode2 As Long, lNodes As Long, HEncodedMessageBitLen As Long, Count As Integer
-        Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, ByteValue As Byte
+        Dim i As Long, j As Long, Checksum As Byte, BitPos As Byte, lNode1 As Long
+        Dim lNode2 As Long, lNodes As Long, HEncodedMessageLen As Long, SymbolCount As Integer, HuffmanIndexBitLenAndSome As Integer
+        Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, TempByte As Byte
         Dim ResultLen As Long, Bytes As ByteArray, NodesCount As Integer,
         BitValue(0 To 7) As Byte, CharCount(0 To 255) As Long
         Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
@@ -168,16 +169,16 @@ Public Class VHuffman
         ReDim Bytes.Data(0 To 255)
         Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, CharValue)
 
-        ' Calculate Huffman Encoded Message Length in bits (excludes huffman index or table)
+        ' Calculate Huffman Encoded Message Length, initially in bits, later changed to bytes(excludes huffman index or table)
         For i = 0 To 255
             If (CharCount(i) > 0) Then
-                HEncodedMessageBitLen = HEncodedMessageBitLen + CharValue(i).Count * CharCount(i)
+                HEncodedMessageLen = HEncodedMessageLen + CharValue(i).Count * CharCount(i)
                 Debug($"char {i}: {CharCount(i)}x {CharValue(i).Count} bits ({CharValue(i).Count / 8} bytes)")
             End If
         Next
-        HEncodedMessageBitLen = IIf(HEncodedMessageBitLen Mod 8 = 0, HEncodedMessageBitLen \ 8, HEncodedMessageBitLen \ 8 + 1)
+        HEncodedMessageLen = IIf(HEncodedMessageLen Mod 8 = 0, HEncodedMessageLen \ 8, HEncodedMessageLen \ 8 + 1)
 
-        If (Not ForceHuffman And (HEncodedMessageBitLen = 0) Or (HEncodedMessageBitLen > ByteLen)) Then
+        If (Not ForceHuffman And (HEncodedMessageLen = 0) Or (HEncodedMessageLen > ByteLen)) Then
             ' Huffman compression doesn't improve size. Send as original bytes with "HE0\r" header.
 
             ReDim Preserve InputArray(0 To ByteLen + 3)
@@ -187,17 +188,17 @@ Public Class VHuffman
             InputArray(1) = 69
             InputArray(2) = 48
             InputArray(3) = 13
-            Debug($"HE0; lLength:{HEncodedMessageBitLen} > ByteLen:{ByteLen}")
+            Debug($"HE0; lLength:{HEncodedMessageLen} > ByteLen:{ByteLen}")
             Return InputArray
             'Exit Function
         End If
 
-        CharC = 0
+        Checksum = 0
         For i = 0 To (ByteLen - 1)
-            CharC = CharC Xor InputArray(i)
+            Checksum = Checksum Xor InputArray(i)
         Next
         'Result[5]: all input bytes of the uncompressed message without header XOR'd togethered as a "CRC" check (kind of like parity bits per bit position)
-        Result(ResultLen) = CharC
+        Result(ResultLen) = Checksum
         ResultLen = ResultLen + 1
 
         'Result[6-9]: length of decoded message in bytes
@@ -214,21 +215,21 @@ Public Class VHuffman
         BitValue(5) = 2 ^ 5
         BitValue(6) = 2 ^ 6
         BitValue(7) = 2 ^ 7
-        Count = 0
+        SymbolCount = 0
         For i = 0 To 255
             'if we allow nulls then need to use:
-            'If (CharValue(i) IsNot Nothing AndAlso CharValue(i).Count > 0) Then Count = Count + 1
-            If (CharValue(i).Count > 0) Then Count = Count + 1
+            'If (CharValue(i) IsNot Nothing AndAlso CharValue(i).Count > 0) Then SymbolCount = SymbolCount + 1
+            If (CharValue(i).Count > 0) Then SymbolCount = SymbolCount + 1
         Next
 
         'Call CopyMem(Result(ResultLen), Count, 2)
-        Array.Copy(BitConverter.GetBytes(Convert.ToUInt16(Count)), 0, Result, ResultLen, 2)
-        Debug($"Encoding count:{Count}")
+        Array.Copy(BitConverter.GetBytes(Convert.ToUInt16(SymbolCount)), 0, Result, ResultLen, 2)
+        Debug($"Encoding count:{SymbolCount}")
         ResultLen = ResultLen + 2
         'Result[10-11]: Number of nodes in Huffman tree (= how many unique bytes appear in message)
 
 
-        Count = 0 ' Reusing Count to for length (in bits) of huffman symbol table that goes at the end of message
+        HuffmanIndexBitLenAndSome = 0 ' to for length (in bits) of huffman symbol table that goes at the end of message
         For i = 0 To 255
             If (CharValue(i).Count > 0) Then
                 'Result[12]: First character (0-255) 
@@ -238,25 +239,33 @@ Public Class VHuffman
                 ResultLen = ResultLen + 1
                 Result(ResultLen) = CharValue(i).Count
                 ResultLen = ResultLen + 1
-                Count = Count + 16 + CharValue(i).Count
+
+                ' 16 bits for this index, 
+                ' then a count of how often the latter appears? adding that many bits? what?
+                ' Not sure if this is meant to measure the size of the message again (HEncodedMessageLen)
+                ' or if it's meant to be for the huffman table at the end? But I think it's the wrong value? Not sure
+                ' Also lacks the fancy rounding of elsewhere:
+                ' HEncodedMessageLen = IIf(HEncodedMessageLen Mod 8 = 0, HEncodedMessageLen \ 8, HEncodedMessageLen \ 8 + 1)
+                HuffmanIndexBitLenAndSome = HuffmanIndexBitLenAndSome + 16 + CharValue(i).Count
             End If
         Next
 
-        ReDim Preserve Result(0 To ResultLen + Count \ 8)
+
+        ReDim Preserve Result(0 To ResultLen + HuffmanIndexBitLenAndSome \ 8)
 
         ' Huffman encoded message
         BitPos = 0
-        ByteValue = 0
+        TempByte = 0
         For i = 0 To 255
             With CharValue(i)
                 If (.Count > 0) Then
                     For j = 0 To (.Count - 1)
-                        If (.Data(j)) Then ByteValue = ByteValue + BitValue(BitPos)
+                        If (.Data(j)) Then TempByte = TempByte + BitValue(BitPos)
                         BitPos = BitPos + 1
                         If (BitPos = 8) Then
-                            Result(ResultLen) = ByteValue
+                            Result(ResultLen) = TempByte
                             ResultLen = ResultLen + 1
-                            ByteValue = 0
+                            TempByte = 0
                             BitPos = 0
                         End If
                     Next
@@ -264,32 +273,33 @@ Public Class VHuffman
             End With
         Next
         If (BitPos > 0) Then
-            Result(ResultLen) = ByteValue ' write final byte of message (0 padded)
+            Result(ResultLen) = TempByte ' write final byte of message (0 padded)
             ResultLen = ResultLen + 1
         End If
 
         ' resize again!?
-        ReDim Preserve Result(0 To ResultLen - 1 + HEncodedMessageBitLen)
+        ReDim Preserve Result(0 To ResultLen - 1 + HEncodedMessageLen)
 
-        CharC = 0 ' Final CRC check (Reusing this variable)
+        ' Create Huffman table: each valid character one after another.
+        TempByte = 0
         ' or is it the huffman codes listed out?
         BitPos = 0
         For i = 0 To (ByteLen - 1)
             With CharValue(InputArray(i))
                 For j = 0 To (.Count - 1)
-                    If (.Data(j) = 1) Then CharC = CharC + BitValue(BitPos)
+                    If (.Data(j) = 1) Then TempByte = TempByte + BitValue(BitPos)
                     BitPos = BitPos + 1
                     If (BitPos = 8) Then
-                        Result(ResultLen) = CharC
+                        Result(ResultLen) = TempByte
                         ResultLen = ResultLen + 1
                         BitPos = 0
-                        CharC = 0
+                        TempByte = 0
                     End If
                 Next
             End With
         Next
         If (BitPos > 0) Then
-            Result(ResultLen) = CharC
+            Result(ResultLen) = TempByte
             ResultLen = ResultLen + 1
         End If
         ReDim InputArray(0 To ResultLen - 1)
@@ -303,7 +313,7 @@ Public Class VHuffman
         'Call CopyMem(InputArray(0), Result(0), ResultLen)
 
         ReDim Preserve Result(0 To ResultLen - 1)
-        Debug("fail2")
+        Debug("success2")
         'Return Result
         Return InputArray
     End Function
