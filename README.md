@@ -34,8 +34,9 @@ There are two message formats, plain bytes and Huffman Encoded.
   *  Presumably stands for "Huffman Encoding 3". (Anyone know which version of which VARA products this was introduced or is compatible with?)
   *  Only byte 2 differs from Plain Bytes message header (ascii 3 vs 0)
   *  Messages which don't contain either header ("HE0\r" nor "HE3\r") are rejected
-* Byte 5 is referred in the source code as a [CRC](https://en.wikipedia.org/wiki/Cyclic_redundancy_check). 
-  *  It's calculated by XORing all bytes of original message (uncompressed without the header), like a sort of parity check. It is _not_ CRC-8.
+* Byte 5: Parity byte
+  *  It's calculated by XORing all bytes of original message (uncompressed without the header); Wiki's [longitudinal parity check](https://en.wikipedia.org/wiki/Longitudinal_redundancy_check) points out that "with this checksum, any transmission error which flips a single bit of the message, or an odd number of bits, will be detected as an incorrect checksum."
+  *  It is variously referred in the source code as a [CRC](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) or Checksum. It is _not_ CRC-8.
 * Bytes 6,7,8,9: Integer with length of decoded message in bytes (without header). Little endian I guess.
 * Bytes 10 and 11: SymbolCount: The number of unique/distinct symbols (8-bit characters) used in the message
   *  Same as the number of entries in the Huffman Index (or half its length in bytes)
@@ -71,7 +72,7 @@ To investigate still:
   
 * **I have not yet verified my version gives identical output to the original** (I haven't set up a VB6(?) environment) 
 * The preferred character encoding used by the original I'm really not sure about, though it's capable of sending any arbitrary byte sequence.
-* Compare efficency with gz or bz
+* Compare efficency with gz or bzip2 (they appear to be much better)
 * What compression is used by other Winlink related protocols and clients (ardop, [pat](https://github.com/la5nta/pat))
 * What error correction is done? (other than the single parity byte) Is it done on another layer?
   
