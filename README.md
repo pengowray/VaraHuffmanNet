@@ -4,7 +4,7 @@ VARA HF's Huffman Encoding algorithm, updated to VB.NET.
 
 ## Project Goals
 
-* Document the Huffman Encoding format of VARA protocol, which is used with WinLink on amateur radio.
+* Document the Huffman Encoding format of the VARA protocol, which is used with WinLink on amateur radio.
 * Create a reference implementation which runs on modern operating systems and compiles on current compilers.
 
 ## Notes about VARA 
@@ -14,7 +14,7 @@ VARA HF's Huffman Encoding algorithm, updated to VB.NET.
 
 # VARA's message formats
 
-There are two message formats, plain bytes and Huffman Encoded.
+There are two message formats, Plain Bytes and Huffman Encoded.
 
 ## Plain Bytes message format
 
@@ -35,7 +35,7 @@ There are two message formats, plain bytes and Huffman Encoded.
   *  Only byte 2 differs from Plain Bytes message header (ascii 3 vs 0)
   *  Messages which don't contain either header ("HE0\r" nor "HE3\r") are rejected
 * Byte 5: Parity byte
-  *  It's calculated by XORing all bytes of original message (uncompressed without the header); Wiki's [longitudinal parity check](https://en.wikipedia.org/wiki/Longitudinal_redundancy_check) points out that "with this checksum, any transmission error which flips a single bit of the message, or an odd number of bits, will be detected as an incorrect checksum."
+  *  It's calculated by XORing all bytes of original message (uncompressed without the header); Wiki's [longitudinal parity check](https://en.wikipedia.org/wiki/Longitudinal_redundancy_check) points out that "with this checksum, any transmission error which flips a single bit of the message, or an odd number of bits, will be detected as an incorrect checksum." Note that the message must be decoded before parity is checked.
   *  It is variously referred in the source code as a [CRC](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) or Checksum. It is _not_ CRC-8.
 * Bytes 6,7,8,9: Integer with length of decoded message in bytes (without header). Little endian I guess.
 * Bytes 10 and 11: SymbolCount: The number of unique/distinct symbols (8-bit characters) used in the message
@@ -49,7 +49,7 @@ There are two message formats, plain bytes and Huffman Encoded.
   *  1 byte: a character (byte) found in the message
   *  1 byte: integer length of its Huffman bit sequence (number of bits)
   *  Example: "H\2" (the letter H will be represented with a bit sequence two bits long)
-  *  The bit sequences themselves are not specified yet, but found after the message
+  *  The bit sequence for the letter is stored at the end of the message in the Huffman Bit Sequence Table
   *  Ordered by ascii value (0 to 255) in the source code but any order would probably work.
 * Huffman Encoded Message 
   *  Any number of bytes long made up of huffman bit sequences representing 8-bit symbols (characters)
@@ -57,6 +57,7 @@ There are two message formats, plain bytes and Huffman Encoded.
 * Huffman Bit Sequence Table
   *  The bit sequences matching each symbol (character) in the Huffman table
   *  If it ends with a partial byte, the remaining bits is are set to 0
+  *  Having this table at the end of the message means the entire message must be received before it is decoded.
 
 Background:
 
@@ -75,7 +76,8 @@ To investigate still:
 * Compare efficency with gz or bzip2 (they appear to be much better)
 * What compression is used by other Winlink related protocols and clients (ardop, [pat](https://github.com/la5nta/pat))
 * What error correction is done? (other than the single parity byte) Is it done on another layer?
-  
+* Was the source code used in production? The inclusion of progression events throughout the code (to update the client/user that processing is happening) implies it was actually used. When were the bugs fixed in VARA products?
+
 License
 
 * This project may contain public propritory code that is otherwise difficult to access and use. The intention is to replace any propritory code that remains.
