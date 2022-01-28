@@ -69,13 +69,13 @@ Public Class VHuffman
     'Encode routine 
     Public Function EncodeByte(InputArray() As Byte, ByteLen As Long, Optional ForceHuffman As Boolean = False) As Byte()
         Dim i As Long, j As Long, CharC As Byte, BitPos As Byte, lNode1 As Long
-        Dim lNode2 As Long, lNodes As Long, lLength As Long, Count As Integer
+        Dim lNode2 As Long, lNodes As Long, HEncodedMessageBitLen As Long, Count As Integer
         Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, ByteValue As Byte
         Dim ResultLen As Long, Bytes As ByteArray, NodesCount As Integer,
         BitValue(0 To 7) As Byte, CharCount(0 To 255) As Long
         Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
 
-        If (ByteLen = 0) Then
+        If (ByteLen = 0 And Not ForceHuffman) Then
             ReDim Preserve InputArray(0 To ByteLen + 3)
             If (ByteLen > 0) Then
                 'Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
@@ -168,16 +168,16 @@ Public Class VHuffman
         ReDim Bytes.Data(0 To 255)
         Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, CharValue)
 
-        ' Calculate Huffman Encoded Message Length (though excludes huffman tables)
+        ' Calculate Huffman Encoded Message Length in bits (excludes huffman index or table)
         For i = 0 To 255
             If (CharCount(i) > 0) Then
-                lLength = lLength + CharValue(i).Count * CharCount(i)
+                HEncodedMessageBitLen = HEncodedMessageBitLen + CharValue(i).Count * CharCount(i)
                 Debug($"char {i}: {CharCount(i)}x {CharValue(i).Count} bits ({CharValue(i).Count / 8} bytes)")
             End If
         Next
-        lLength = IIf(lLength Mod 8 = 0, lLength \ 8, lLength \ 8 + 1)
+        HEncodedMessageBitLen = IIf(HEncodedMessageBitLen Mod 8 = 0, HEncodedMessageBitLen \ 8, HEncodedMessageBitLen \ 8 + 1)
 
-        If (lLength = 0) Or (lLength > ByteLen) Then
+        If (Not ForceHuffman And (HEncodedMessageBitLen = 0) Or (HEncodedMessageBitLen > ByteLen)) Then
             ' Huffman compression doesn't improve size. Send as original bytes with "HE0\r" header.
 
             ReDim Preserve InputArray(0 To ByteLen + 3)
@@ -187,7 +187,7 @@ Public Class VHuffman
             InputArray(1) = 69
             InputArray(2) = 48
             InputArray(3) = 13
-            Debug($"HE0; lLength:{lLength} > ByteLen:{ByteLen}")
+            Debug($"HE0; lLength:{HEncodedMessageBitLen} > ByteLen:{ByteLen}")
             Return InputArray
             'Exit Function
         End If
@@ -269,7 +269,7 @@ Public Class VHuffman
         End If
 
         ' resize again!?
-        ReDim Preserve Result(0 To ResultLen - 1 + lLength)
+        ReDim Preserve Result(0 To ResultLen - 1 + HEncodedMessageBitLen)
 
         CharC = 0 ' Final CRC check (Reusing this variable)
         ' or is it the huffman codes listed out?
