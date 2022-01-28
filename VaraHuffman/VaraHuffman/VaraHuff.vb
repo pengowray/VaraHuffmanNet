@@ -4,12 +4,6 @@
 Imports System.Runtime.InteropServices
 
 Public Class VHuffman
-    Private Const PROGRESS_CALCFREQUENCY = 7
-    Private Const PROGRESS_CALCCRC = 5
-    Private Const PROGRESS_ENCODING = 88
-    Private Const PROGRESS_DECODING = 89
-    Private Const PROGRESS_CHECKCRC = 11
-    Event Progress(Procent As Integer)
 
     Private Class HuffmanTree
         Public ParentNode As Integer
@@ -73,12 +67,12 @@ Public Class VHuffman
     End Function
 
     'Encode routine 
-    Public Function EncodeByte(InputArray() As Byte, ByteLen As Long) As Byte()
+    Public Function EncodeByte(InputArray() As Byte, ByteLen As Long, Optional ForceHuffman As Boolean = False) As Byte()
         Dim i As Long, j As Long, CharC As Byte, BitPos As Byte, lNode1 As Long
         Dim lNode2 As Long, lNodes As Long, lLength As Long, Count As Integer
         Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, ByteValue As Byte
-        Dim ResultLen As Long, Bytes As ByteArray, NodesCount As Integer, NewProgress As Integer
-        Dim CurrProgress As Integer, BitValue(0 To 7) As Byte, CharCount(0 To 255) As Long
+        Dim ResultLen As Long, Bytes As ByteArray, NodesCount As Integer,
+        BitValue(0 To 7) As Byte, CharCount(0 To 255) As Long
         Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
 
         If (ByteLen = 0) Then
@@ -107,13 +101,6 @@ Public Class VHuffman
 
         For i = 0 To (ByteLen - 1)
             CharCount(InputArray(i)) = CharCount(InputArray(i)) + 1
-            If (i Mod 1000 = 0) Then
-                NewProgress = i / ByteLen * PROGRESS_CALCFREQUENCY
-                If (NewProgress <> CurrProgress) Then
-                    CurrProgress = NewProgress
-                    'RaiseEvent Progress(CurrProgress)
-                End If
-            End If
         Next
         For i = 0 To 255
             Nodes(i) = New HuffmanTree()
@@ -208,15 +195,8 @@ Public Class VHuffman
         CharC = 0
         For i = 0 To (ByteLen - 1)
             CharC = CharC Xor InputArray(i)
-            If (i Mod 10000 = 0) Then
-                NewProgress = i / ByteLen * PROGRESS_CALCCRC + PROGRESS_CALCFREQUENCY
-                If (NewProgress <> CurrProgress) Then
-                    CurrProgress = NewProgress
-                    'RaiseEvent Progress(CurrProgress)
-                End If
-            End If
         Next
-        'Result[5]: all input bytes of the uncompressed message XOR'd togethered as a "CRC" check (kind of like parity bits per bit position)
+        'Result[5]: all input bytes of the uncompressed message without header XOR'd togethered as a "CRC" check (kind of like parity bits per bit position)
         Result(ResultLen) = CharC
         ResultLen = ResultLen + 1
 
@@ -307,13 +287,6 @@ Public Class VHuffman
                     End If
                 Next
             End With
-            If (i Mod 10000 = 0) Then
-                NewProgress = i / ByteLen * PROGRESS_ENCODING + PROGRESS_CALCCRC + PROGRESS_CALCFREQUENCY
-                If (NewProgress <> CurrProgress) Then
-                    CurrProgress = NewProgress
-                    'RaiseEvent Progress(CurrProgress)
-                End If
-            End If
         Next
         If (BitPos > 0) Then
             Result(ResultLen) = CharC
@@ -322,9 +295,7 @@ Public Class VHuffman
         ReDim InputArray(0 To ResultLen - 1)
         'Call CopyMem(ByteArray(0), Result(0), ResultLen)
         Array.Copy(Result, 0, InputArray, 0, ResultLen) ' TODO: just return Result?
-        If (CurrProgress <> 100) Then
-            'RaiseEvent Progress(100)
-        End If
+
         'EncodeByte = Result
 
         'Originally copied result back over InputArray:
@@ -364,7 +335,7 @@ Public Class VHuffman
         Dim i As Long, j As Long, Pos As Long, CharC As Byte, CurrPos As Long
         Dim Count As Integer, CheckSum As Byte, Result() As Byte, BitPos As Integer
         Dim NodeIndex As Long, ByteValue As Byte, ResultLen As Long, NodesCount As Long
-        Dim lResultLen As Long, NewProgress As Integer, CurrProgress As Integer, BitValue(0 To 7) As Byte
+        Dim lResultLen As Long, BitValue(0 To 7) As Byte
         Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
 
         ' check for header: "HE0\r" or "HE3\r"
@@ -487,25 +458,11 @@ Public Class VHuffman
                     NodeIndex = 0
                 End If
             Next
-            If (CurrPos Mod 10000 = 0) Then
-                NewProgress = CurrPos / ByteLen * PROGRESS_DECODING
-                If (NewProgress <> CurrProgress) Then
-                    CurrProgress = NewProgress
-                    'RaiseEvent Progress(CurrProgress)
-                End If
-            End If
         Next
 DecodeFinished:
         CharC = 0
         For i = 0 To (ResultLen - 1)
             CharC = CharC Xor Result(i)
-            If (i Mod 10000 = 0) Then
-                NewProgress = i / ResultLen * PROGRESS_CHECKCRC + PROGRESS_DECODING
-                If (NewProgress <> CurrProgress) Then
-                    CurrProgress = NewProgress
-                    'RaiseEvent Progress(CurrProgress)
-                End If
-            End If
         Next
         If (CharC <> CheckSum) Then Err.Raise(vbObjectError, "clsHuffman.Decode()", "The data might be corrupted (checksum did not match expected value)")
         ReDim InputBytes(0 To ResultLen - 1)
@@ -513,9 +470,6 @@ DecodeFinished:
         Debug($"Final ResultLen:{ResultLen}")
         Array.Copy(Result, 0, InputBytes, 0, ResultLen)
 
-        If (CurrProgress <> 100) Then
-            'RaiseEvent Progress(100)
-        End If
         Debug("success")
         Return InputBytes
     End Function
