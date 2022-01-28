@@ -76,7 +76,8 @@ Public Class VHuffman
         BitValue(0 To 7) As Byte, CharCount(0 To 255) As Long
         Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
 
-        If (ByteLen = 0 And Not ForceHuffman) Then
+        'If (ByteLen = 0 And Not ForceHuffman) Then ' causes an error, so don't force to compress 0 len inputs for now
+        If (ByteLen = 0) Then 'note: error if we don't do this for ForceHuffman (...And Not ForceHuffman)
             ReDim Preserve InputArray(0 To ByteLen + 3)
             If (ByteLen > 0) Then
                 'Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
@@ -178,7 +179,7 @@ Public Class VHuffman
         Next
         HEncodedMessageLen = IIf(HEncodedMessageLen Mod 8 = 0, HEncodedMessageLen \ 8, HEncodedMessageLen \ 8 + 1)
 
-        If (Not ForceHuffman And (HEncodedMessageLen = 0) Or (HEncodedMessageLen > ByteLen)) Then
+        If (ForceHuffman = False And ((HEncodedMessageLen = 0) Or (HEncodedMessageLen > ByteLen))) Then
             ' Huffman compression doesn't improve size. Send as original bytes with "HE0\r" header.
 
             ReDim Preserve InputArray(0 To ByteLen + 3)
