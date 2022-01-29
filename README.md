@@ -66,6 +66,10 @@ There are two message formats, Plain Bytes and Huffman Encoded.
   *  A prefix code has a length 1 to 255 (theoretically at least?)
   *  A prefix code may also be called a bit sequence, Huffman code, prefix-free binary code or codeword
 
+* Notes:
+  *  Partial decoding (streaming) of Huffman Encoded messages cannot be supported: The entire Huffman encoded message must be received before any of it can be practically decoded (because Huffman Table 2, needed to decode the message, comes at the end, after the encoded message)
+  * The encoder will not normally encode an empty message using Huffman Encoding, but it could be represented as: `48 45 33 0D 00 00 00 00 00 00 00`
+   
 Background:
 
 * Protocols used for amateur radio are required by the FCC to be published. 
@@ -77,7 +81,6 @@ Background:
 * There is no documentation on which versions of VARA the huffman message format is compatible with. 
 * The VB6 code does not run easily on modern systems. 
 * Unlike modern VB.NET, the IDE, compiler and runtime environments for VB6 are not free or open source.
-* Partial decoding (streaming) of Huffman Encoded messages cannot be supported: The entire Huffman encoded message must be received before any of it can be practically decoded (because Huffman Table 2, needed to decode the message, comes at the end, after the encoded message)
  
 To investigate still:
   
