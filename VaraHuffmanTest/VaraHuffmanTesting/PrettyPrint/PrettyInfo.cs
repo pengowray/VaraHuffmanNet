@@ -14,15 +14,18 @@ public static class PrettyInfo {
     private static VHuffman? Vara;
 
     public static void PrettyPrintInfo(string text) {
+        Console.WriteLine($"to encode    : {text}");
+        Console.WriteLine($"text length  : {text.Length} chars");
+        byte[] bytes = Encoding.ASCII.GetBytes(text);
+        PrettyPrintInfo(bytes);
+    }
+
+    public static void PrettyPrintInfo(byte[] bytes) {
 
         if (Vara == null) {
              Vara = new VHuffman();
         }
 
-
-        Console.WriteLine($"to encode    : {text}");
-        Console.WriteLine($"text length  : {text.Length} chars");
-        byte[] bytes = Encoding.ASCII.GetBytes(text);
         Console.WriteLine($"byte length  : {bytes.Length} bytes");
         //Console.WriteLine($"as base64  : {Convert.ToBase64String(bytes)}");
 
@@ -40,12 +43,12 @@ public static class PrettyInfo {
         //string encoded = Base64Encode(bytes); //Encoding.ASCII.GetString(bytes);
         Console.WriteLine($"byte length  : {bytes.Length} bytes (100%)");
         Console.WriteLine($"encoded len  : {enc.Length} bytes ({(double)enc.Length / bytes.Length:P1})");
-        Console.WriteLine($"HE0 forced   : {bytes.Length + 4} bytes ({(double)(bytes.Length + 4) / bytes.Length:P1})");
-        Console.WriteLine($"HE3 forced   : {huffmanEnc.Length} bytes ({(double)huffmanEnc.Length / bytes.Length:P1})");
-        var gziplen = GzipStream.Length + 8;
-        var bziplen = bzip2Stream.Length + 8;
-        Console.WriteLine($"gzip  len    : {gziplen} bytes (with additional 8 byte header)  ({(double)gziplen / bytes.Length:P1})");
-        Console.WriteLine($"bzip2 len    : {bziplen} bytes (with additional 8 byte header)  ({(double)bziplen / bytes.Length:P1})");
+        Console.WriteLine($"as HE0       : {bytes.Length + 4} bytes ({(double)(bytes.Length + 4) / bytes.Length:P1})");
+        Console.WriteLine($"as HE3       : {huffmanEnc.Length} bytes ({(double)huffmanEnc.Length / bytes.Length:P1})");
+        var gziplen = GzipStream.Length + 4;
+        var bziplen = bzip2Stream.Length + 4;
+        Console.WriteLine($"gzip in HE0  : {gziplen} bytes (gzip + 4 byte header) ({(double)gziplen / bytes.Length:P1})");
+        Console.WriteLine($"bzip2 in HE0 : {bziplen} bytes (bz2 + 4 byte header)  ({(double)bziplen / bytes.Length:P1})");
         //Console.WriteLine($"encoded      : {Base64Encode(enc)}");
         Console.WriteLine($"PlainHeader  : {BitConverter.ToString(Data.ZeroBytesEncoded)}"); // + " ({Encoding.ASCII.GetString(ZeroBytesEncoded)})");
         Console.WriteLine($"HuffmanHeader: {BitConverter.ToString(Data.NormalStartEncoded)}"); // + " ({Encoding.ASCII.GetString(NormalStartEncoded)})");
@@ -53,11 +56,17 @@ public static class PrettyInfo {
             Console.WriteLine($"encoded-head : {BitConverter.ToString(enc.Take(4).ToArray())}");
         }
         Console.WriteLine($"encoded-hex  : {BitConverter.ToString(enc)}");
+        Console.WriteLine($"HE3-hex      : {BitConverter.ToString(huffmanEnc)}");
+        Console.WriteLine($"gzip-hex     : {BitConverter.ToString(GzipStream.ToArray())}");
         //Console.WriteLine($"encoded-asc:\r\n{Encoding.ASCII.GetString(enc)}");
 
-        //enc[3] = 51; // force non-null
-
         var decoded = Vara.DecodeByte(enc, enc.Length);
+        var decodeHuff = Vara.DecodeByte(huffmanEnc, huffmanEnc.Length);
+        //TODO: test gzip / bzip decompression too
+        //GZip.Decompress()
+
+        Console.WriteLine($"decode match : {(decoded.SequenceEqual(bytes) ? "MATCH" : "ERROR")}");
+        Console.WriteLine($"decode HE3   : {(decodeHuff.SequenceEqual(bytes) ? "MATCH" : "ERROR")}");
 
         //Console.WriteLine($"decoded64     : {Base64Encode(decoded)}");
         //Console.WriteLine($"decoded ascii : {Encoding.ASCII.GetString(decoded)}");

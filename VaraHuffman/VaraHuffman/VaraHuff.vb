@@ -5,6 +5,7 @@ Imports System.Runtime.InteropServices
 
 Public Class VHuffman
 
+
     Private Class HuffmanTree
         ' do we need all these variables? probably
         Public ParentNode As Integer
@@ -33,13 +34,15 @@ Public Class VHuffman
     '<System.Runtime.InteropServices.MarshalAsAttribute(System.Runtime.InteropServices.UnmanagedType.AsAny)> ByVal o As Object)
     'Private Declare Sub CopyMem Lib "kernel32" Alias "RtlMoveMemory" (<MarshalAsAttribute(UnmanagedType.AsAny)> Destination As Object, <MarshalAsAttribute(UnmanagedType.AsAny)> Source As Object, ByVal Length As Long)
 
+    Private Const MaxNodes As Int16 = 511 ' 0..MaxNodes-1; (Max 511 nodes for huffman tree are needed. 2N-1; original code was 512)
+
     'Create Huffman tree 
-    Private Function CreateTree(Nodes() As HuffmanTree, NodesCount As Long, CharC As Long, Bytes As ByteArray)
+    Private Function CreateTree(Nodes() As HuffmanTree, NodesCount As Long, CharC As Long, CharValueBytes As ByteArray)
         Dim a As Integer, NodeIndex As Long
 
         NodeIndex = 0
-        For a = 0 To (Bytes.Count - 1)
-            If (Bytes.Data(a) = 0) Then
+        For a = 0 To (CharValueBytes.Count - 1)
+            If (CharValueBytes.Data(a) = 0) Then
                 If (Nodes(NodeIndex).LeftNode = -1) Then
                     Nodes(NodeIndex).LeftNode = NodesCount
                     Nodes(NodesCount).ParentNode = NodeIndex
@@ -49,7 +52,7 @@ Public Class VHuffman
                     NodesCount = NodesCount + 1
                 End If
                 NodeIndex = Nodes(NodeIndex).LeftNode
-            ElseIf (Bytes.Data(a) = 1) Then
+            ElseIf (CharValueBytes.Data(a) = 1) Then
                 If (Nodes(NodeIndex).RightNode = -1) Then
                     Nodes(NodeIndex).RightNode = NodesCount
                     Nodes(NodesCount).ParentNode = NodeIndex
@@ -74,7 +77,8 @@ Public Class VHuffman
         Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, TempByte As Byte
         Dim ResultLen As Long, Bytes As ByteArray, NodesCount As Integer,
         BitValue(0 To 7) As Byte, CharCount(0 To 255) As Long
-        Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
+        Dim Nodes(0 To MaxNodes - 1) As HuffmanTree
+        Dim CharValue(0 To 255) As ByteArray
 
         'If (ByteLen = 0 And Not ForceHuffman) Then ' causes an error, so don't force to compress 0 len inputs for now
         If (ByteLen = 0) Then 'note: error if we don't do this for ForceHuffman (...And Not ForceHuffman)
@@ -104,8 +108,12 @@ Public Class VHuffman
         For i = 0 To (ByteLen - 1)
             CharCount(InputArray(i)) = CharCount(InputArray(i)) + 1
         Next
-        For i = 0 To 255
+
+        For i = 0 To MaxNodes - 1
             Nodes(i) = New HuffmanTree()
+        Next
+
+        For i = 0 To 255
             If (CharCount(i) > 0) Then
                 With Nodes(NodesCount)
                     .Weight = CharCount(i)
@@ -147,7 +155,6 @@ Public Class VHuffman
                     End If
                 End If
             Next
-
             With Nodes(NodesCount)
                 .Weight = lWeight1 + lWeight2
                 .LeftNode = lNode1
@@ -347,7 +354,8 @@ Public Class VHuffman
         Dim Count As Integer, CheckSum As Byte, Result() As Byte, BitPos As Integer
         Dim NodeIndex As Long, ByteValue As Byte, ResultLen As Long, NodesCount As Long
         Dim lResultLen As Long, BitValue(0 To 7) As Byte
-        Dim Nodes(0 To 511) As HuffmanTree, CharValue(0 To 255) As ByteArray
+        Dim Nodes(0 To MaxNodes) As HuffmanTree ' 
+        Dim CharValue(0 To 255) As ByteArray
 
         ' check for header: "HE0\r" or "HE3\r"
         If (InputBytes(0) <> 72) Or (InputBytes(1) <> 69) Or (InputBytes(3) <> 13) Then
@@ -400,7 +408,7 @@ Public Class VHuffman
             CharValue(i) = New ByteArray()
         Next
 
-        For i = 0 To 511
+        For i = 0 To MaxNodes
             Nodes(i) = New HuffmanTree()
         Next
 
@@ -421,7 +429,7 @@ Public Class VHuffman
         BitValue(5) = 2 ^ 5
         BitValue(6) = 2 ^ 6
         BitValue(7) = 2 ^ 7
-
+        Debug($"CurrPos: {CurrPos}; InputBytes.Len:{InputBytes.Length}")
         ByteValue = InputBytes(CurrPos - 1)
         CurrPos = CurrPos + 1
         BitPos = 0
