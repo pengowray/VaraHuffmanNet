@@ -63,12 +63,19 @@ public static class PrettyInfo {
         //Console.WriteLine($"encoded-asc:\r\n{Encoding.ASCII.GetString(enc)}");
 
         var decoded = Vara.DecodeByte(enc, enc.Length);
+        Console.WriteLine("--decoding H3--");
         var decodeHuff = Vara.DecodeByte(huffmanEnc, huffmanEnc.Length);
+        Console.WriteLine("--end decoding H3--");
+
         //TODO: test gzip / bzip decompression too
         //GZip.Decompress()
 
         Console.WriteLine($"decode match : {(decoded.SequenceEqual(bytes) ? "MATCH" : "ERROR")}");
-        Console.WriteLine($"decode HE3   : {(decodeHuff.SequenceEqual(bytes) ? "MATCH" : "ERROR")}");
+        bool decodeH3Match = decodeHuff.SequenceEqual(bytes);
+        Console.WriteLine($"decode HE3   : {(decodeH3Match ? "MATCH" : "ERROR")}");
+        if (!decodeH3Match) {
+            Console.WriteLine($"decoded HE3 sequence (FAILED MATCH):\n{BitConverter.ToString(decodeHuff)}");
+        }
 
         //Console.WriteLine($"decoded64     : {Base64Encode(decoded)}");
         //Console.WriteLine($"decoded ascii : {Encoding.ASCII.GetString(decoded)}");

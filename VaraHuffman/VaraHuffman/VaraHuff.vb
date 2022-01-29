@@ -83,8 +83,8 @@ Public Class VHuffman
         Dim SymbolCount As Integer
         Dim SymbolCount2 As Integer
 
-        'If (ByteLen = 0 And Not ForceHuffman) Then ' causes an error, so don't force to compress 0 len inputs for now
-        If (ByteLen = 0) Then 'note: error if we don't do this for ForceHuffman (...And Not ForceHuffman)
+        If (ByteLen = 0 And Not ForceHuffman) Then ' causes an error, so don't force to compress 0 len inputs for now
+            'If (ByteLen = 0) Then 'note: error if we don't do this for ForceHuffman (...And Not ForceHuffman)
             ReDim Preserve InputArray(0 To ByteLen + 3)
             If (ByteLen > 0) Then
                 'Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
@@ -179,7 +179,9 @@ Public Class VHuffman
         Bytes = New ByteArray() ' (needed because bytes is a class instead of a structure/type)
 
         ReDim Bytes.Data(0 To 255)
-        Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, SymbolBitSequence)
+        If (NodesCount > 0) Then 'Minor Bugfix: check NodesCount > 0 to allow huffman encoding zero-length messages
+            Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, SymbolBitSequence)
+        End If
 
         'one-symbol bugfix:
         If (SymbolCount2 = 1) Then
@@ -406,9 +408,9 @@ Public Class VHuffman
         lResultLen = ResultLen
         'If (ResultLen = 0) Then Exit Sub
         If (ResultLen = 0) Then
-            Debug("fail6?")
-            'Return New Byte() {}
-            Return InputBytes
+            Debug("0 length huffman message")
+            Return New Byte() {} ' minor bugfix: allow 0 length huffman message
+            'Return InputBytes ' original: why?
         End If
         ReDim Result(0 To ResultLen - 1)
         'Call CopyMem(Count, ByteArray(CurrPos - 1), 2)
