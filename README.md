@@ -24,7 +24,7 @@ There are two message formats, Plain Bytes and Huffman Encoded.
 
   *  `\r` — carriage return <CR> — was used by MacOS 9 as a line separator. If an output message is displayed on a Window terminal, the CR will "hide" the header by moving the cursor back to the start of the line, so the message displayed following it will overwrite the header.
 
-  *  This mode will be used when Huffman compression would not decrease the message size. But VARA's provided source code appears to be a little suboptimial in making this comparison as it doesn't appear to consider the size of the Huffman Index and Bit Sequence Table, so it underestimates the size of the Huffman compressed message. (Is this the case with the release version too? Can we double check this behavior?)
+  *  This mode will be used when Huffman compression would not decrease the message size. But VARA's provided source code appears to be a little suboptimial in making this comparison as it doesn't appear to consider the size of the Huffman tables, so it underestimates the size of the Huffman compressed message. (Is this the case with the release version too? Can we double check this behavior?)
 
   *  Empty messages are made up of just the four header bytes and nothing else.
 
@@ -37,27 +37,35 @@ There are two message formats, Plain Bytes and Huffman Encoded.
 * Byte 5: Parity byte
   *  It's calculated by XORing all bytes of original message (uncompressed without the header); Wiki's [longitudinal parity check](https://en.wikipedia.org/wiki/Longitudinal_redundancy_check) points out that "with this checksum, any transmission error which flips a single bit of the message, or an odd number of bits, will be detected as an incorrect checksum." Note that the message must be decoded before parity is checked.
   *  It is variously referred in the source code as a [CRC](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) or Checksum. It is _not_ CRC-8.
-* Bytes 6,7,8,9: Integer with length of decoded message in bytes (without header). Little endian I guess.
-* Bytes 10 and 11: SymbolCount: The number of unique/distinct symbols (8-bit characters) used in the message
-  *  Same as the number of entries in the Huffman Index (or half its length in bytes)
-  *  Which is also the number of nodes in the Huffman tree
-  *  Possible values are 1 to 256. (0 would be sent as an empty unencoded message instead)
+* Bytes 6,7,8,9: Integer with length of decoded message in bytes (without header). Little endian like the rest of integers, I guess.
+* Bytes 10 and 11: SymbolCount: The number of unique/distinct symbols (8-bit characters) used in the original message
+  *  Same as the number of entries in the Huffman Table 1 (or double the number for the table's byte length)
+  *  Which is also the number of leaf nodes in the Huffman tree
+  *  Possible values are 1 to 256 (hex: `01 00` to `00 01`). Zero-symbol or empty messages are always sent as an empty unencoded message and not Huffman encoded (even with the "ForceHuffman" option enabled which I added, because it caused a crash and hasn't been debugged) so this field never has a 0 value.
   *  For example, the message `Hi!!` will give a value of 3. 
   *  Bytes 10 and 11 together make up a little-endian 16-bit integer. Unless the message uses all 256 characters, byte 11 has a value of 0. (TODO: confirm this)
-  *  All symbols are 8-bit bytes. Longer or shorter symbols or sequences cannot be encoded.
-* Huffman Index (starting byte 12), 2-byte structure repeated SymbolCount times.
-  *  1 byte: a character (byte) found in the message
-  *  1 byte: integer length of its Huffman bit sequence (number of bits)
+  *  All symbols are 8-bit bytes (e.g. typically ascii characters). There's no support for other sized symbols or sequences.
+ 
+* Huffman Table 1 (starting byte 12)
+  *  2-byte structure repeated SymbolCount times.
+    *  1 byte: a symbol (byte) found in the message
+    *  1 byte: integer length of its prefix code in number of bits
   *  Example: "H\2" (the letter H will be represented with a bit sequence two bits long)
-  *  The bit sequence for the letter is stored at the end of the message in the Huffman Bit Sequence Table
+  *  The prefix code (bit sequence) for the letter is stored at the end of the message in Huffman Table 2
   *  Ordered by ascii value (0 to 255) in the source code but any order would probably work.
-* Huffman Encoded Message 
-  *  Any number of bytes long made up of huffman bit sequences representing 8-bit symbols (characters)
-  *  If it ends with a partial byte, the remaining bits is are set to 0
-* Huffman Bit Sequence Table
-  *  The bit sequences matching each symbol (character) in the Huffman table
-  *  If it ends with a partial byte, the remaining bits is are set to 0
+ 
+* Encoded Message 
+  *  Any number of bytes long made up of variable length Huffman prefix codes. 
+  *  Each prefix code represents one 8-bit symbol (such as an ascii character)
+  *  If the encoded message ends with a partial byte, the remaining bits is are set to 0 (It's zero padded)
+ 
+* Huffman Table 2: List of prefix codes
+  *  Each prefix code listed one after another.
+  *  Huffman Table 1 is needed to tell the length of each prefix code, and what symbol (e.g. ascii character) it represeents
+  *  If table 2 ends with a partial byte, the remaining bits is are set to 0 (padded)
   *  Having this table at the end of the message means the entire message must be received before it is decoded.
+  *  A prefix code has a length 1 to 255 (theoretically at least?)
+  *  A prefix code may also be called a bit sequence, Huffman code, prefix-free binary code or codeword
 
 Background:
 
@@ -71,18 +79,21 @@ Background:
   
 To investigate still:
   
-* **I have not yet verified my version gives identical output to the original** (I haven't set up a VB6(?) environment) 
-* The preferred character encoding used by the original I'm really not sure about, though it's capable of sending any arbitrary byte sequence.
-* Compare efficency with gz or bzip2 (they appear to be much better)
-* What compression is used by other Winlink related protocols and clients (ardop, [pat](https://github.com/la5nta/pat))
-* What error correction is done? (other than the single parity byte) Is it done on another layer?
-* Was the source code used in production? The inclusion of progression events throughout the code (to update the client/user that processing is happening) implies it was actually used. When were the bugs fixed in VARA products?
+* **I have not yet verified my version gives identical output to the original** (I haven't set up a VB6(?) environment) Particular things to test:
+   * Does it have identical output? (eg check byte order, input size limitations, one unique symbol inputs, and 256 unique symbol inputs)
+   * What's the preferred/default character encoding used by the original? Does it vary with Windows configuration? (though it's capable of sending any arbitrary byte sequences anyway)
+   * Which bugs still occur?
+   * Memory copying issues
+* Compare efficency with gz or bzip2 (in a small number of tests they appear much better for anything of a non-trivial length, such as short or long email messages)
+* What compression is used by other Winlink related protocols and clients? (ardop, [pat](https://github.com/la5nta/pat))
+* What error correction is done in practice? (other than the single parity byte) Is it done on another layer? (There's some kind of ECC in the related ROS project, used for Weak Signal Radio Chat)
+* Was the provided source code actually used in production? How long ago? Have there been changes and bugfixes? Has efficiency been improved? The inclusion of progression events throughout the code (to give updates to the client about ongoing processing progress) implies it was actually used in production.
 
 License
 
-* This project may contain public propritory code that is otherwise difficult to access and use. The intention is to replace any propritory code that remains.
+* This project may contain public propritory code that is otherwise difficult to access and use. The intention is to eventually replace any propritory code that remains in this project.
 * All my own contributions are MIT licensed. 
-* Documentation such as this readme or any lengthy comments is CC-BY (any) and MIT licensed (take your pick).
+* Documentation such as this readme or any lengthy comments is duel licensed CC-BY (any) and MIT (take your pick).
 
 Links
 
