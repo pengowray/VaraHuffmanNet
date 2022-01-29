@@ -41,14 +41,14 @@ There are two message formats, Plain Bytes and Huffman Encoded.
 * Bytes 10 and 11: SymbolCount: The number of unique/distinct symbols (8-bit characters) used in the original message
   *  Same as the number of entries in the Huffman Table 1 (or double the number for the table's byte length)
   *  Which is also the number of leaf nodes in the Huffman tree
-  *  Possible values are 1 to 256 (hex: `01 00` to `00 01`). Zero-symbol or empty messages are always sent as an empty unencoded message and not Huffman encoded (even with the "ForceHuffman" option enabled which I added, because it caused a crash and hasn't been debugged) so this field never has a 0 value.
+  *  Possible values are 1 to 256 (hex: `01 00` to `00 01`). Zero-symbol or empty messages are sent as an empty Plain Bytes message and not Huffman encoded, so this field does not have a 0 value in normal operation (unless ForceHuffman option is used)
   *  For example, the message `Hi!!` will give a value of 3. 
   *  Bytes 10 and 11 together make up a little-endian 16-bit integer. Unless the message uses all 256 characters, byte 11 has a value of 0. (TODO: confirm this)
   *  All symbols are 8-bit bytes (e.g. typically ascii characters). There's no support for other sized symbols or sequences.
  
 * Huffman Table 1 (starting byte 12)
   *  2-byte structure repeated SymbolCount times.
-    *  1 byte: a symbol (byte) found in the message
+    *  1 byte: an 8-bit symbol (character) found in the message
     *  1 byte: integer length of its prefix code in number of bits
   *  Example: "H\2" (the letter H will be represented with a bit sequence two bits long)
   *  The prefix code (bit sequence) for the letter is stored at the end of the message in Huffman Table 2
@@ -61,9 +61,8 @@ There are two message formats, Plain Bytes and Huffman Encoded.
  
 * Huffman Table 2: List of prefix codes
   *  Each prefix code listed one after another.
-  *  Huffman Table 1 is needed to tell the length of each prefix code, and what symbol (e.g. ascii character) it represeents
-  *  If table 2 ends with a partial byte, the remaining bits is are set to 0 (padded)
-  *  Having this table at the end of the message means the entire message must be received before it is decoded.
+  *  Huffman Table 1 gives the length of each prefix code, and what symbol (e.g. ascii character) it represeents
+  *  If table 2 ends with a partial byte, the remaining bits is are set to 0 (it's zero padded)
   *  A prefix code has a length 1 to 255 (theoretically at least?)
   *  A prefix code may also be called a bit sequence, Huffman code, prefix-free binary code or codeword
 
@@ -75,20 +74,25 @@ Background:
 * The code cannot be pasted into a text file without then making manual corrections for formatting.
 * There are no instructions on using the code or even what language it is in.
 * It appears to be a form of [Classic VisualBasic](https://en.wikipedia.org/wiki/Visual_Basic_(classic)) (circa 1991 to 1998) such as VB6. It has many incompatibilities with modern VisualBasic.Net.
-* There is no documentation on which versions of VARA it is compatible with. It does not run easily on modern systems. 
-  
+* There is no documentation on which versions of VARA the huffman message format is compatible with. 
+* The VB6 code does not run easily on modern systems. 
+* Unlike modern VB.NET, the IDE, compiler and runtime environments for VB6 are not free or open source.
+* Partial decoding (streaming) of Huffman Encoded messages cannot be supported: The entire Huffman encoded message must be received before any of it can be practically decoded (because Huffman Table 2, needed to decode the message, comes at the end, after the encoded message)
+ 
 To investigate still:
   
-* **I have not yet verified my version gives identical output to the original** (I haven't set up a VB6(?) environment) Particular things to test:
-   * Does it have identical output? (eg check byte order, input size limitations, one unique symbol inputs, and 256 unique symbol inputs)
+* **I have not yet verified my version gives identical output to the original** (I haven't set up a VB6(?) environment) Particular things to test in VB6 version and in current and previous products:
+   * Does it have identical output? (eg check byte order, input size limitations, one unique symbol message encoding/decoding, and 256 unique symbol encoding/decoding)
    * What's the preferred/default character encoding used by the original? Does it vary with Windows configuration? (though it's capable of sending any arbitrary byte sequences anyway)
-   * Which bugs still occur?
+   * Which bugs still occur? (e.g. has choice between HE0 and HE3 improved)
    * Memory copying issues
-* Compare efficency with gz or bzip2 (in a small number of tests they appear much better for anything of a non-trivial length, such as short or long email messages)
+   * Does it support reading 0-length Huffman Encoding messages? (It checks for them but not sure what original code returns. It never generates them)
+* Compare efficency of gz or bzip2 (in a small number of tests they appear much better for anything of a non-trivial length, such as short or long email messages)
 * What compression is used by other Winlink related protocols and clients? (ardop, [pat](https://github.com/la5nta/pat))
 * What error correction is done in practice? (other than the single parity byte) Is it done on another layer? (There's some kind of ECC in the related ROS project, used for Weak Signal Radio Chat)
 * Was the provided source code actually used in production? How long ago? Have there been changes and bugfixes? Has efficiency been improved? The inclusion of progression events throughout the code (to give updates to the client about ongoing processing progress) implies it was actually used in production.
-
+* Does decoder still work if order of Huffman Tables are rearranged?
+ 
 License
 
 * This project may contain public propritory code that is otherwise difficult to access and use. The intention is to eventually replace any propritory code that remains in this project.
