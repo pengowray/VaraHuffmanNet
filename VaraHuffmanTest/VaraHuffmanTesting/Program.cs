@@ -28,7 +28,12 @@ Console.WriteLine(y);
 //PrettyInfo.PrettyPrintInfo(text);
 
 //test with every possibly character value (0-255) with some extra 39's to unbalance the tree
-var text = Enumerable.Range(0, 255).Select(x => (byte)x).Append((byte)39).Append((byte)39).Append((byte)39).Append((byte)39).Append((byte)39).ToArray();
-//var text = "aaaaa";
-//var text = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+//var text = Enumerable.Range(0, 256).Select(x => (byte)x).Append((byte)39).Append((byte)39).Append((byte)39).Append((byte)39).Append((byte)39).ToArray();
+//var text = "\0\0\0\0\0";
+var text = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+//
+//2.0var text = "ababababababab";
+//var text = "01234567890";
+
+
 PrettyInfo.PrettyPrintInfo(text);

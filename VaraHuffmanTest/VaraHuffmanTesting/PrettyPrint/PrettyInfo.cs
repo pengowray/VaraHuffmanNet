@@ -27,6 +27,8 @@ public static class PrettyInfo {
         }
 
         Console.WriteLine($"byte length  : {bytes.Length} bytes");
+        Console.WriteLine($"symbol count : {bytes.Distinct().Count()}");
+
         //Console.WriteLine($"as base64  : {Convert.ToBase64String(bytes)}");
 
         MemoryStream byteStream2 = new MemoryStream(bytes);

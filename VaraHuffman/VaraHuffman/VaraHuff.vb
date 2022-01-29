@@ -11,7 +11,7 @@ Public Class VHuffman
         Public ParentNode As Integer
         Public RightNode As Integer
         Public LeftNode As Integer
-        Public Value As Integer
+        Public Symbol As Integer ' was "Value as Integer" (0-255 or -1 for empty)
         Public Weight As Long
     End Class
 
@@ -37,28 +37,28 @@ Public Class VHuffman
     Private Const MaxNodes As Int16 = 511 ' 0..MaxNodes-1; (Max 511 nodes for huffman tree are needed. 2N-1; original code was 512)
 
     'Create Huffman tree 
-    Private Function CreateTree(Nodes() As HuffmanTree, NodesCount As Long, CharC As Long, CharValueBytes As ByteArray)
+    Private Function CreateTree(Nodes() As HuffmanTree, NodesCount As Long, CharC As Long, SymbolBitSequence As ByteArray)
         Dim a As Integer, NodeIndex As Long
 
         NodeIndex = 0
-        For a = 0 To (CharValueBytes.Count - 1)
-            If (CharValueBytes.Data(a) = 0) Then
+        For a = 0 To (SymbolBitSequence.Count - 1)
+            If (SymbolBitSequence.Data(a) = 0) Then
                 If (Nodes(NodeIndex).LeftNode = -1) Then
                     Nodes(NodeIndex).LeftNode = NodesCount
                     Nodes(NodesCount).ParentNode = NodeIndex
                     Nodes(NodesCount).LeftNode = -1
                     Nodes(NodesCount).RightNode = -1
-                    Nodes(NodesCount).Value = -1
+                    Nodes(NodesCount).Symbol = -1
                     NodesCount = NodesCount + 1
                 End If
                 NodeIndex = Nodes(NodeIndex).LeftNode
-            ElseIf (CharValueBytes.Data(a) = 1) Then
+            ElseIf (SymbolBitSequence.Data(a) = 1) Then
                 If (Nodes(NodeIndex).RightNode = -1) Then
                     Nodes(NodeIndex).RightNode = NodesCount
                     Nodes(NodesCount).ParentNode = NodeIndex
                     Nodes(NodesCount).LeftNode = -1
                     Nodes(NodesCount).RightNode = -1
-                    Nodes(NodesCount).Value = -1
+                    Nodes(NodesCount).Symbol = -1
                     NodesCount = NodesCount + 1
                 End If
                 NodeIndex = Nodes(NodeIndex).RightNode
@@ -66,19 +66,22 @@ Public Class VHuffman
                 Stop
             End If
         Next
-        Nodes(NodeIndex).Value = CharC
+        Nodes(NodeIndex).Symbol = CharC
         Return NodesCount
     End Function
 
     'Encode routine 
     Public Function EncodeByte(InputArray() As Byte, ByteLen As Long, Optional ForceHuffman As Boolean = False) As Byte()
         Dim i As Long, j As Long, Checksum As Byte, BitPos As Byte, lNode1 As Long
-        Dim lNode2 As Long, lNodes As Long, HEncodedMessageLen As Long, SymbolCount As Integer, HuffmanIndexBitLenAndSome As Integer
+        Dim lNode2 As Long, lNodes As Long, HEncodedMessageLen As Long, HuffmanIndexBitLenAndSome As Integer
         Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, TempByte As Byte
-        Dim ResultLen As Long, Bytes As ByteArray, NodesCount As Integer,
+        Dim ResultLen As Long, NodesCount As Integer,
         BitValue(0 To 7) As Byte, CharCount(0 To 255) As Long
         Dim Nodes(0 To MaxNodes - 1) As HuffmanTree
-        Dim CharValue(0 To 255) As ByteArray
+        Dim Bytes As ByteArray
+        Dim SymbolBitSequence(0 To 255) As ByteArray ' .Count = number of bits (stored as bytes); .Data(): 0's and 1's
+        Dim SymbolCount As Integer
+        Dim SymbolCount2 As Integer
 
         'If (ByteLen = 0 And Not ForceHuffman) Then ' causes an error, so don't force to compress 0 len inputs for now
         If (ByteLen = 0) Then 'note: error if we don't do this for ForceHuffman (...And Not ForceHuffman)
@@ -117,12 +120,13 @@ Public Class VHuffman
             If (CharCount(i) > 0) Then
                 With Nodes(NodesCount)
                     .Weight = CharCount(i)
-                    .Value = i
+                    .Symbol = i
                     .LeftNode = -1
                     .RightNode = -1
                     .ParentNode = -1
                 End With
                 NodesCount = NodesCount + 1
+                SymbolCount2 = SymbolCount2 + 1
             End If
         Next
 
@@ -160,7 +164,7 @@ Public Class VHuffman
                 .LeftNode = lNode1
                 .RightNode = lNode2
                 .ParentNode = -1
-                .Value = -1
+                .Symbol = -1
             End With
 
             Nodes(lNode1).ParentNode = NodesCount
@@ -169,19 +173,27 @@ Public Class VHuffman
         Next
 
         For i = 0 To 255
-            CharValue(i) = New ByteArray()
+            SymbolBitSequence(i) = New ByteArray()
         Next
 
         Bytes = New ByteArray() ' (needed because bytes is a class instead of a structure/type)
 
         ReDim Bytes.Data(0 To 255)
-        Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, CharValue)
+        Call CreateBitSequences(Nodes, NodesCount - 1, Bytes, SymbolBitSequence)
+
+        'one-symbol bugfix:
+        If (SymbolCount2 = 1) Then
+            ' only one symbol (e.g. compressing "aaaaa")
+            ' Without this, its node will have an empty bitsequence for some reason.
+            ' Make it 1 bit long (a single 0)
+            SymbolBitSequence(InputArray(0)).Count = 1
+        End If
 
         ' Calculate Huffman Encoded Message Length, initially in bits, later changed to bytes(excludes huffman index or table)
         For i = 0 To 255
             If (CharCount(i) > 0) Then
-                HEncodedMessageLen = HEncodedMessageLen + CharValue(i).Count * CharCount(i)
-                Debug($"char {i}: {CharCount(i)}x {CharValue(i).Count} bits ({CharValue(i).Count / 8} bytes)")
+                HEncodedMessageLen = HEncodedMessageLen + SymbolBitSequence(i).Count * CharCount(i)
+                Debug($"char {i}: {CharCount(i)}x {SymbolBitSequence(i).Count} bits ({SymbolBitSequence(i).Count / 8} bytes)")
             End If
         Next
         HEncodedMessageLen = IIf(HEncodedMessageLen Mod 8 = 0, HEncodedMessageLen \ 8, HEncodedMessageLen \ 8 + 1)
@@ -225,27 +237,30 @@ Public Class VHuffman
         BitValue(7) = 2 ^ 7
         SymbolCount = 0
         For i = 0 To 255
+            'This count is redundant now. Already have SymbolCount2. 
             'if we allow nulls then need to use:
             'If (CharValue(i) IsNot Nothing AndAlso CharValue(i).Count > 0) Then SymbolCount = SymbolCount + 1
-            If (CharValue(i).Count > 0) Then SymbolCount = SymbolCount + 1
+            If (SymbolBitSequence(i).Count > 0) Then SymbolCount = SymbolCount + 1
+            'If (CharCount(i) > 0) Then SymbolCount = SymbolCount + 1
         Next
 
         'Call CopyMem(Result(ResultLen), Count, 2)
         Array.Copy(BitConverter.GetBytes(Convert.ToUInt16(SymbolCount)), 0, Result, ResultLen, 2)
-        Debug($"Encoding count:{SymbolCount}")
+        Debug($"Encoding count :{SymbolCount}")
+        Debug($"Encoding count2:{SymbolCount2}")
         ResultLen = ResultLen + 2
         'Result[10-11]: Number of nodes in Huffman tree (= how many unique bytes appear in message)
 
 
         HuffmanIndexBitLenAndSome = 0 ' to for length (in bits) of huffman symbol table that goes at the end of message
         For i = 0 To 255
-            If (CharValue(i).Count > 0) Then
+            If (SymbolBitSequence(i).Count > 0) Then
                 'Result[12]: First character (0-255) 
                 'Result[13]: Number of bits in its Huffman encoding
                 'Continue up to Result[524] (theoretical max if all characters are used)
                 Result(ResultLen) = i
                 ResultLen = ResultLen + 1
-                Result(ResultLen) = CharValue(i).Count
+                Result(ResultLen) = SymbolBitSequence(i).Count
                 ResultLen = ResultLen + 1
 
                 ' 16 bits for this index, 
@@ -254,7 +269,7 @@ Public Class VHuffman
                 ' or if it's meant to be for the huffman table at the end? But I think it's the wrong value? Not sure
                 ' Also lacks the fancy rounding of elsewhere:
                 ' HEncodedMessageLen = IIf(HEncodedMessageLen Mod 8 = 0, HEncodedMessageLen \ 8, HEncodedMessageLen \ 8 + 1)
-                HuffmanIndexBitLenAndSome = HuffmanIndexBitLenAndSome + 16 + CharValue(i).Count
+                HuffmanIndexBitLenAndSome = HuffmanIndexBitLenAndSome + 16 + SymbolBitSequence(i).Count
             End If
         Next
 
@@ -265,7 +280,7 @@ Public Class VHuffman
         BitPos = 0
         TempByte = 0
         For i = 0 To 255
-            With CharValue(i)
+            With SymbolBitSequence(i)
                 If (.Count > 0) Then
                     For j = 0 To (.Count - 1)
                         If (.Data(j)) Then TempByte = TempByte + BitValue(BitPos)
@@ -293,7 +308,7 @@ Public Class VHuffman
         ' or is it the huffman codes listed out?
         BitPos = 0
         For i = 0 To (ByteLen - 1)
-            With CharValue(InputArray(i))
+            With SymbolBitSequence(InputArray(i))
                 For j = 0 To (.Count - 1)
                     If (.Data(j) = 1) Then TempByte = TempByte + BitValue(BitPos)
                     BitPos = BitPos + 1
@@ -355,7 +370,7 @@ Public Class VHuffman
         Dim NodeIndex As Long, ByteValue As Byte, ResultLen As Long, NodesCount As Long
         Dim lResultLen As Long, BitValue(0 To 7) As Byte
         Dim Nodes(0 To MaxNodes) As HuffmanTree ' 
-        Dim CharValue(0 To 255) As ByteArray
+        Dim SymbolBitSequence(0 To 255) As ByteArray
 
         ' check for header: "HE0\r" or "HE3\r"
         If (InputBytes(0) <> 72) Or (InputBytes(1) <> 69) Or (InputBytes(3) <> 13) Then
@@ -405,7 +420,7 @@ Public Class VHuffman
 
         'TODO: optimization: don't declare all when don't need them all
         For i = 0 To 255
-            CharValue(i) = New ByteArray()
+            SymbolBitSequence(i) = New ByteArray()
         Next
 
         For i = 0 To MaxNodes
@@ -413,7 +428,7 @@ Public Class VHuffman
         Next
 
         For i = 1 To Count
-            With CharValue(InputBytes(CurrPos - 1))
+            With SymbolBitSequence(InputBytes(CurrPos - 1))
                 CurrPos = CurrPos + 1
                 .Count = InputBytes(CurrPos - 1)
                 CurrPos = CurrPos + 1
@@ -435,7 +450,7 @@ Public Class VHuffman
         BitPos = 0
 
         For i = 0 To 255
-            With CharValue(i)
+            With SymbolBitSequence(i)
                 If (.Count > 0) Then
                     For j = 0 To (.Count - 1)
                         If (ByteValue And BitValue(BitPos)) Then .Data(j) = 1
@@ -456,10 +471,10 @@ Public Class VHuffman
         Nodes(0).LeftNode = -1
         Nodes(0).RightNode = -1
         Nodes(0).ParentNode = -1
-        Nodes(0).Value = -1
+        Nodes(0).Symbol = -1
 
         For i = 0 To 255
-            NodesCount = CreateTree(Nodes, NodesCount, i, CharValue(i))
+            NodesCount = CreateTree(Nodes, NodesCount, i, SymbolBitSequence(i))
         Next
 
         ResultLen = 0
@@ -467,8 +482,8 @@ Public Class VHuffman
             ByteValue = InputBytes(CurrPos - 1)
             For BitPos = 0 To 7
                 If (ByteValue And BitValue(BitPos)) Then NodeIndex = Nodes(NodeIndex).RightNode Else NodeIndex = Nodes(NodeIndex).LeftNode
-                If (Nodes(NodeIndex).Value > -1) Then
-                    Result(ResultLen) = Nodes(NodeIndex).Value
+                If (Nodes(NodeIndex).Symbol > -1) Then
+                    Result(ResultLen) = Nodes(NodeIndex).Symbol
                     ResultLen = ResultLen + 1
                     If (ResultLen = lResultLen) Then
                         Debug("DecodeFinished")
@@ -497,24 +512,25 @@ DecodeFinished:
         Console.WriteLine("VHuffman debug: " + text)
     End Sub
 
-    Private Sub CreateBitSequences(Nodes() As HuffmanTree, ByVal NodeIndex As Integer, Bytes As ByteArray, CharValue() As ByteArray)
+    Private Sub CreateBitSequences(Nodes() As HuffmanTree, ByVal NodeIndex As Integer, Bytes As ByteArray, SymbolBitSequence() As ByteArray)
         Dim NewBytes As ByteArray
+        Dim CNode As HuffmanTree = Nodes(NodeIndex) ' Current Node
 
-        If (Nodes(NodeIndex).Value > -1) Then
-            CharValue(Nodes(NodeIndex).Value) = Bytes
+        If (CNode.Symbol > -1) Then
+            SymbolBitSequence(CNode.Symbol) = Bytes
             Exit Sub
         End If
-        If (Nodes(NodeIndex).LeftNode > -1) Then
+        If (CNode.LeftNode > -1) Then
             NewBytes = Bytes.Clone()
             NewBytes.Data(NewBytes.Count) = 0
             NewBytes.Count = NewBytes.Count + 1
-            Call CreateBitSequences(Nodes, Nodes(NodeIndex).LeftNode, NewBytes, CharValue)
+            Call CreateBitSequences(Nodes, CNode.LeftNode, NewBytes, SymbolBitSequence)
         End If
-        If (Nodes(NodeIndex).RightNode > -1) Then
+        If (CNode.RightNode > -1) Then
             NewBytes = Bytes.Clone()
             NewBytes.Data(NewBytes.Count) = 1
             NewBytes.Count = NewBytes.Count + 1
-            Call CreateBitSequences(Nodes, Nodes(NodeIndex).RightNode, NewBytes, CharValue)
+            Call CreateBitSequences(Nodes, CNode.RightNode, NewBytes, SymbolBitSequence)
         End If
     End Sub
 
