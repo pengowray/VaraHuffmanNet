@@ -2,59 +2,6 @@
 using VaraHuffman;
 using VaraHuffmanTesting.PrettyPrint;
 
-// See https://aka.ms/new-console-template for more information
-// Console.WriteLine("Hello, World!");
-
-// naming ideas
-// OpenVaraHuffman
-// VelociHuffman: VARA HF Modem Huffman Encoder/Decoder (just for the Huffman encoding part)
-// (Veloci from Velocidad)
-
-// todo:
-// - calculate how many bytes huffman tree takes (for 0 to 255 characters used)
-
-// Non-breaking improvements:
-// - rewrite it
-// - break messages into separate frames when:
-//    * max message length exceeded (uint length)
-//    * an improvement could be made by creating a new huffman table
-// - Improve HE0/HE3 selection: comparison between uncompressed and compressed sending options does not consider size of huffman tables
-
-// Breaking Improvements:
-// - Why isn't there a predefined huffman tree for plain text? (optimized for email/winlink)
-// - Re-use previously used huffman tree
-// - Allow multibyte huffman nodes
-// - Allow decoding before entire message sent (Don't place part of the huffman code table at the end)
-// - Just replace huffman with more modern compression, e.g. bzip2 or gz
-// - UTF8 as default mode for unicode
-// - Shorter header sequence
-// - error correction (is this done at another level?)
-// - CRC/Hash on the end, for the message sent, not the decoded message, instead of a not-CRC parity byte thing
-// - Suggest compression for ARDOP (Amateur Radio Digital Open Protocol) -- the alternative to VARA. Why is VARA used instead?
-
-// Code issues: (too many)
-// - Too many ReDims; just calculate size once
-// - It's VB6 or something very old (unspecified)
-// - It's in a PDF (lines wraps break the code if you copy paste)
-// - It's hosted on mega, a semi-paywall which prevents access
-// - No comments
-// - CRC is primitive (XOR all letters together)
-// - Redundant code: Code for writing bits is done twice (for huffman encoded message, and then again for huffman symbols)
-// - Reuse of variables for completely different things (Count);  checksum byte ("Char", renamed CharC and then Checksum) was reused as a temp byte for building huffman tables instead of reusing one just used before hand (ByteValue now renamed TempByte)
-// - Bizarre global variables (parameter NodesCount in CreateTree expects a global scope / by reference)
-// - Uses ByteArray as name of variable and a type. The variable is not a ByteArray.
-// - BitValue lookup table (very doubious optimization): BitValue(0) = 2 ^ 0; BitValue(1) = 2 ^ 1; etc
-// - heavy use of unsafe CopyMem
-// - ReDim resizing of large arrays (for message input and output) multiple times
-// - Resizes and replaces contents of input byte array and expects that to be available to the caller as if it's C code or something
-// - has a variable named Char which isn't even legal in VB.Net
-
-//Where's the ECC?:
-//New ROS v7.4.0
-//26 October, 2016
-//A new error correction code have been implemented in ROS mode and improves slightly decodification in HF conditions.
-//The new algorithm will start operating on November 9 with the v7.4.0
-
 /*
 var x = vara.EncodeString("test");
 Console.WriteLine(x);
