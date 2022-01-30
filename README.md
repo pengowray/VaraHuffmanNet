@@ -106,3 +106,7 @@ Links
 
 * [VARA HF](https://www.sigidwiki.com/wiki/VARA_HF) on Signal Identification Wiki (sigidwik)
 * [VARA news](https://www.winlink.org/tags/vara) on Winlink
+* Winlink "Open B2F" (Winlink Message Structure and B2 Forwarding Protocol): 
+   * [Documentation](https://winlink.org/B2F): FBB B1 compression, using LZH or LZHUF compression algorithm 
+   * [VB.Net](https://github.com/ARSFI/Winlink-Compression) "actual source code used in Winlink programs"
+   * [FBB for Pat (GO source)](https://github.com/la5nta/wl2k-go/tree/master/fbb)
