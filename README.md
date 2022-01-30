@@ -68,7 +68,6 @@ There are two message formats, Plain Bytes and Huffman Encoded.
 
 * Notes:
   *  Partial decoding (streaming) of Huffman Encoded messages cannot be supported: The entire Huffman encoded message must be received before any of it can be practically decoded (because Huffman Table 2, needed to decode the message, comes at the end, after the encoded message)
-  * The encoder will not normally encode an empty message using Huffman Encoding, but it could be represented as: `48 45 33 0D 00 00 00 00 00 00 00`
    
 Background:
 
@@ -89,12 +88,13 @@ To investigate still:
    * What's the preferred/default character encoding used by the original? Does it vary with Windows configuration? (though it's capable of sending any arbitrary byte sequences anyway)
    * Which bugs still occur? (e.g. has choice between HE0 and HE3 improved)
    * Memory copying issues
-   * Does it support reading 0-length Huffman Encoding messages? (It checks for them but not sure what original code returns. It never generates them)
+   * Does it support reading 0-length Huffman Encoding messages? (It checks for them but not sure what original code returns. It never generates them). The original Huffman encoder will avoid encoding an empty message, but it looks like: `48 45 33 0D 00 00 00 00 00 00 00`
 * Compare efficency of gz or bzip2 (in a small number of tests they appear much better for anything of a non-trivial length, such as short or long email messages)
 * What compression is used by other Winlink related protocols and clients? (ardop, [pat](https://github.com/la5nta/pat))
 * What error correction is done in practice? (other than the single parity byte) Is it done on another layer? (There's some kind of ECC in the related ROS project, used for Weak Signal Radio Chat)
 * Was the provided source code actually used in production? How long ago? Have there been changes and bugfixes? Has efficiency been improved? The inclusion of progression events throughout the code (to give updates to the client about ongoing processing progress) implies it was actually used in production.
 * Does decoder still work if order of Huffman Tables are rearranged?
+* Does WinLink software directly interface with the Huffman encoder/decoder at all?
  
 License
 
