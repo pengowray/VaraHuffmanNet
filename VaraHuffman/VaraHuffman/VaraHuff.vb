@@ -1,13 +1,18 @@
 ﻿Option Explicit On
-' "VARA HUFFMAN COMPRESSION.pdf"
+' based on "VARA HUFFMAN COMPRESSION.pdf"
 
 Imports System.Runtime.InteropServices
 
 Public Class VHuffman
 
+    Public Enum MessageType
+        Auto
+        NoCompression
+        Huffman
+    End Enum
+    Public ShowDebug As Boolean = False
 
     Private Class HuffmanTree
-        ' do we need all these variables? probably
         Public ParentNode As Integer
         Public RightNode As Integer
         Public LeftNode As Integer
@@ -70,8 +75,7 @@ Public Class VHuffman
         Return NodesCount
     End Function
 
-    'Encode routine 
-    Public Function EncodeByte(InputArray() As Byte, ByteLen As Long, Optional ForceHuffman As Boolean = False) As Byte()
+    Public Function EncodeByte(InputArray() As Byte, Optional ByteLen As Long = -1, Optional Encoding As MessageType = MessageType.Auto) As Byte()
         Dim i As Long, j As Long, Checksum As Byte, BitPos As Byte, lNode1 As Long
         Dim lNode2 As Long, lNodes As Long, HEncodedMessageLen As Long, HuffmanIndexBitLenAndSome As Integer
         Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, TempByte As Byte
@@ -83,7 +87,11 @@ Public Class VHuffman
         Dim SymbolCount As Integer
         Dim SymbolCount2 As Integer
 
-        If (ByteLen = 0 And Not ForceHuffman) Then ' causes an error, so don't force to compress 0 len inputs for now
+        If (ByteLen = -1) Then
+            ByteLen = InputArray.Length
+        End If
+
+        If (ByteLen = 0 And Not Encoding = MessageType.Huffman) Then ' causes an error, so don't force to compress 0 len inputs for now
             'If (ByteLen = 0) Then 'note: error if we don't do this for ForceHuffman (...And Not ForceHuffman)
             ReDim Preserve InputArray(0 To ByteLen + 3)
             If (ByteLen > 0) Then
@@ -200,19 +208,21 @@ Public Class VHuffman
         Next
         HEncodedMessageLen = IIf(HEncodedMessageLen Mod 8 = 0, HEncodedMessageLen \ 8, HEncodedMessageLen \ 8 + 1)
 
-        If (ForceHuffman = False And ((HEncodedMessageLen = 0) Or (HEncodedMessageLen > ByteLen))) Then
-            ' Huffman compression doesn't improve size. Send as original bytes with "HE0\r" header.
+        If Encoding = MessageType.NoCompression Or (Encoding = MessageType.Auto And ((HEncodedMessageLen = 0) Or (HEncodedMessageLen > ByteLen))) Then
+            ' Huffman compression doesn't improve size or no compression requested.
+            ' Send as original bytes with "HE0\r" header.
 
-            ReDim Preserve InputArray(0 To ByteLen + 3)
-            'Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
-            Array.Copy(InputArray, 0, InputArray, 4, ByteLen)
-            InputArray(0) = 72
-            InputArray(1) = 69
-            InputArray(2) = 48
-            InputArray(3) = 13
-            Debug($"HE0; lLength:{HEncodedMessageLen} > ByteLen:{ByteLen}")
-            Return InputArray
-            'Exit Function
+            ' TODO: (optimization) Do this sooner for MessageType.NoCompression 
+
+            ReDim Result(0 To ByteLen + 3)
+            Array.Copy(InputArray, 0, Result, 4, ByteLen)
+
+            Result(0) = 72
+            Result(1) = 69
+            Result(2) = 48
+            Result(3) = 13
+            Debug($"HE0; lLength:{HEncodedMessageLen} > ByteLen:{ByteLen}; Encoding:{Encoding}")
+            Return Result
         End If
 
         Checksum = 0
@@ -252,7 +262,6 @@ Public Class VHuffman
         Debug($"Encoding count2:{SymbolCount2}")
         ResultLen = ResultLen + 2
         'Result[10-11]: Number of nodes in Huffman tree (= how many unique bytes appear in message)
-
 
         HuffmanIndexBitLenAndSome = 0 ' to for length (in bits) of huffman symbol table that goes at the end of message
         For i = 0 To 255
@@ -366,24 +375,30 @@ Public Class VHuffman
     End Function
 
     'Decode routine 
-    Public Function DecodeByte(InputBytes() As Byte, ByteLen As Long) As Byte()
+    Public Function DecodeByte(InputBytes() As Byte, Optional ByteLen As Long = -1) As Byte()
         Dim i As Long, j As Long, Pos As Long, CharC As Byte, CurrPos As Long
         Dim Count As Integer, CheckSum As Byte, Result() As Byte, BitPos As Integer
         Dim NodeIndex As Long, ByteValue As Byte, ResultLen As Long, NodesCount As Long
         Dim lResultLen As Long, BitValue(0 To 7) As Byte
         Dim Nodes(0 To MaxNodes) As HuffmanTree ' 
         Dim SymbolBitSequence(0 To 255) As ByteArray
+        If (ByteLen = -1) Then
+            ByteLen = InputBytes.Length
+        End If
 
         ' check for header: "HE0\r" or "HE3\r"
         If (InputBytes(0) <> 72) Or (InputBytes(1) <> 69) Or (InputBytes(3) <> 13) Then
 
         ElseIf (InputBytes(2) = 48) Then
+
             'Call CopyMem(ByteArray(0), ByteArray(4), ByteLen - 4)
-            Array.Copy(InputBytes, 4, InputBytes, 0, ByteLen - 4)
-            ReDim Preserve InputBytes(0 To ByteLen - 5)
+            'Array.Copy(InputBytes, 4, InputBytes, 0, ByteLen - 4)
+            'ReDim Preserve InputBytes(0 To ByteLen - 5)
+            ReDim Result(0 To ByteLen - 5)
+            Array.Copy(InputBytes, 4, Result, 0, ByteLen - 4)
             'Exit Sub
-            Debug("successful decode null string")
-            Return New Byte() {}
+            Debug("successful decode null string or HE0")
+            Return Result
 
         ElseIf (InputBytes(2) <> 51) Then
             Const ErrorDescription As String = "The data either was not compressed with HE3 or is corrupt (identification string not found)"
@@ -511,7 +526,9 @@ DecodeFinished:
     End Function
 
     Private Sub Debug(text As String)
-        Console.WriteLine("VHuffman debug: " + text)
+        If ShowDebug Then
+            Console.WriteLine("VHuffman debug: " + text)
+        End If
     End Sub
 
     Private Sub CreateBitSequences(Nodes() As HuffmanTree, ByVal NodeIndex As Integer, Bytes As ByteArray, SymbolBitSequence() As ByteArray)

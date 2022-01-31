@@ -8,22 +8,23 @@ using ICSharpCode.SharpZipLib.BZip2;
 using ICSharpCode.SharpZipLib.GZip;
 using VaraHuffman;
 
-namespace VaraHuffmanTesting.PrettyPrint;
-public static class PrettyInfo {
+namespace VaraHuffmanTesting.DebugInfo;
+public static class DebugInfoPrinter {
 
     private static VHuffman? Vara;
 
-    public static void PrettyPrintInfo(string text) {
+    public static void PrintDebugInfo(string text) {
         Console.WriteLine($"to encode    : {text}");
         Console.WriteLine($"text length  : {text.Length} chars");
         byte[] bytes = Encoding.ASCII.GetBytes(text);
-        PrettyPrintInfo(bytes);
+        PrintDebugInfo(bytes);
     }
 
-    public static void PrettyPrintInfo(byte[] bytes) {
+    public static void PrintDebugInfo(byte[] bytes) {
 
         if (Vara == null) {
-             Vara = new VHuffman();
+            Vara = new VHuffman();
+            Vara.ShowDebug = false;
         }
 
         Console.WriteLine($"byte length  : {bytes.Length} bytes");
@@ -40,12 +41,15 @@ public static class PrettyInfo {
         BZip2.Compress(byteStream, bzip2Stream, false, 9);
 
         var enc = Vara.EncodeByte(bytes, bytes.Length);
-        var huffmanEnc = Vara.EncodeByte(bytes, bytes.Length, ForceHuffman:true);
+        //Console.WriteLine("---no compression---");
+        var NoCompressionEnc = Vara.EncodeByte(bytes, bytes.Length, VHuffman.MessageType.NoCompression);
+        //Console.WriteLine("---end no compression---");
+        var huffmanEnc = Vara.EncodeByte(bytes, bytes.Length, VHuffman.MessageType.Huffman);
 
         //string encoded = Base64Encode(bytes); //Encoding.ASCII.GetString(bytes);
         Console.WriteLine($"byte length  : {bytes.Length} bytes (100%)");
         Console.WriteLine($"encoded len  : {enc.Length} bytes ({(double)enc.Length / bytes.Length:P1})");
-        Console.WriteLine($"as HE0       : {bytes.Length + 4} bytes ({(double)(bytes.Length + 4) / bytes.Length:P1})");
+        Console.WriteLine($"as HE0       : {NoCompressionEnc.Length /* == bytes.Length + 4 */} bytes ({(double)NoCompressionEnc.Length / bytes.Length:P1})");
         Console.WriteLine($"as HE3       : {huffmanEnc.Length} bytes ({(double)huffmanEnc.Length / bytes.Length:P1})");
         var gziplen = GzipStream.Length + 4;
         var bziplen = bzip2Stream.Length + 4;
@@ -58,20 +62,29 @@ public static class PrettyInfo {
             Console.WriteLine($"encoded-head : {BitConverter.ToString(enc.Take(4).ToArray())}");
         }
         Console.WriteLine($"encoded-hex  : {BitConverter.ToString(enc)}");
+        Console.WriteLine($"HE0-hex      : {BitConverter.ToString(NoCompressionEnc)}");
         Console.WriteLine($"HE3-hex      : {BitConverter.ToString(huffmanEnc)}");
         Console.WriteLine($"gzip-hex     : {BitConverter.ToString(GzipStream.ToArray())}");
         //Console.WriteLine($"encoded-asc:\r\n{Encoding.ASCII.GetString(enc)}");
 
-        var decoded = Vara.DecodeByte(enc, enc.Length);
-        Console.WriteLine("--decoding H3--");
-        var decodeHuff = Vara.DecodeByte(huffmanEnc, huffmanEnc.Length);
-        Console.WriteLine("--end decoding H3--");
+        var decoded = Vara.DecodeByte(enc);
+        //Console.WriteLine("--decoding H3--");
+        var decodeHuff = Vara.DecodeByte(huffmanEnc);
+        //Console.WriteLine("--end decoding H3--");
+        //Console.WriteLine("---no compression dec---");
+        var decodeH0 = Vara.DecodeByte(NoCompressionEnc);
+        //Console.WriteLine("---end no compression dec---");
 
         //TODO: test gzip / bzip decompression too
         //GZip.Decompress()
 
         Console.WriteLine($"decode match : {(decoded.SequenceEqual(bytes) ? "MATCH" : "ERROR")}");
         bool decodeH3Match = decodeHuff.SequenceEqual(bytes);
+        bool decodeH0Match = decodeH0.SequenceEqual(bytes);
+        Console.WriteLine($"decode HE0   : {(decodeH0Match ? "MATCH" : "ERROR")}");
+        if (!decodeH0Match) {
+            Console.WriteLine($"decoded HE0 sequence (FAILED MATCH; length:{decodeH0.Length}):\n{BitConverter.ToString(decodeH0)}");
+        }
         Console.WriteLine($"decode HE3   : {(decodeH3Match ? "MATCH" : "ERROR")}");
         if (!decodeH3Match) {
             Console.WriteLine($"decoded HE3 sequence (FAILED MATCH):\n{BitConverter.ToString(decodeHuff)}");
