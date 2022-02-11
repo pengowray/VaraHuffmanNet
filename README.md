@@ -4,7 +4,7 @@ VARA HF's Huffman Encoding algorithm, updated to VB.NET.
 
 ## Project Goals
 
-* Document the Huffman Encoding format of the VARA protocol, which is used with WinLink on amateur radio.
+* Document the Huffman Encoding format of the VARA protocol, which is used with WinLink on amateur radio. (Note: WinLink might disable VARA's compression and use its own FBB B1 compression instead)
 * Create a reference implementation which runs on modern operating systems and compiles on current compilers.
 
 ## Notes about VARA 
