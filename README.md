@@ -42,7 +42,7 @@ There are two message formats, Plain Bytes and Huffman Encoded.
   *  Same as the number of entries in the Huffman Table 1 (or double the number for the table's byte length)
   *  Which is also the number of leaf nodes in the Huffman tree
   *  Possible values are 1 to 256 (hex: `01 00` to `00 01`). Zero-symbol or empty messages are sent as an empty Plain Bytes message and not Huffman encoded, so this field does not have a 0 value in normal operation (unless ForceHuffman option is used)
-  *  For example, the message `Hi!!` will give a value of 3. 
+  *  For example, the message `Hi!!` will give a value of 3. `03 00`
   *  Bytes 10 and 11 together make up a little-endian 16-bit integer. Unless the message uses all 256 characters, byte 11 has a value of 0. (TODO: confirm this)
   *  All symbols are 8-bit bytes (e.g. typically ascii characters). There's no support for other sized symbols or sequences.
  
@@ -50,19 +50,19 @@ There are two message formats, Plain Bytes and Huffman Encoded.
   *  2-byte structure repeated SymbolCount times.
     *  1 byte: an 8-bit symbol (character) found in the message
     *  1 byte: integer length of its prefix code in number of bits
-  *  Example: "H\2" (the letter H will be represented with a bit sequence two bits long)
+  *  Example: "A\2" `65 02` (the letter A will be represented with a bit sequence two bits long)
   *  The prefix code (bit sequence) for the letter is stored at the end of the message in Huffman Table 2
   *  Ordered by ascii value (0 to 255) in the source code but any order would probably work.
  
 * Encoded Message 
   *  Any number of bytes long made up of variable length Huffman prefix codes. 
   *  Each prefix code represents one 8-bit symbol (such as an ascii character)
-  *  If the encoded message ends with a partial byte, the remaining bits is are set to 0 (It's zero padded)
+  *  If the encoded message ends with a partial byte, the remaining bits are set to 0 (It's zero padded)
  
 * Huffman Table 2: List of prefix codes
   *  Each prefix code listed one after another.
   *  Huffman Table 1 gives the length of each prefix code, and what symbol (e.g. ascii character) it represeents
-  *  If table 2 ends with a partial byte, the remaining bits is are set to 0 (it's zero padded)
+  *  If Table 2 ends with a partial byte, the remaining bits is are set to 0 (It's zero padded)
   *  A prefix code has a length 1 to 255 (theoretically at least?)
   *  A prefix code may also be called a bit sequence, Huffman code, prefix-free binary code or codeword
 
