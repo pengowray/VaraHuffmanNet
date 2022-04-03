@@ -10,11 +10,11 @@ VARA HF's Huffman Encoding algorithm, updated to VB.NET.
 ## Notes about VARA 
 
 * VARA does not stand for anything. 
-* It is proprietary software is developed by EA5HVK.
+* It is proprietary software developed by EA5HVK.
 
 # VARA's message formats
 
-There are two message formats, Plain Bytes and Huffman Encoded.
+There are two message formats, which I'm calling "Plain Bytes" and "Huffman Encoded".
 
 ## Plain Bytes message format
 
