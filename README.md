@@ -65,7 +65,7 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
  
 * Huffman Table 2: List of prefix codes
   *  Each prefix code listed one after another.
-  *  It's zero padded: If Table 2 ends with a partial byte, the remaining bits is are set to 0 
+  *  It's zero padded: If Table 2 ends with a partial byte, the remaining bits are set to 0 
   *  A prefix code has a length 1 to 255 (theoretically at least?)
   *  A prefix code may also be called a bit sequence, Huffman code, prefix-free binary code or codeword
   *  Huffman Table 1 (above) gives the length of each prefix code, and what symbol (e.g. ascii character) it represeents
