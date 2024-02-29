@@ -124,7 +124,7 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 ## License
 
 * This project may contain publicly-available propritory code that is otherwise difficult to access or use. The intention is to eventually replace any propritory code that remains in this project.
-* Documentation such as this readme or any lengthy comments is duel licensed CC-BY (any) and MIT (take your pick).
+* Documentation (this readme) is duel licensed CC-BY (any) and MIT (take your pick).
 
 ## Links
 
