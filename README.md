@@ -95,20 +95,20 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 
 * the FCC requires protocols used for amateur radio in the US to be published. (FCC 97.309)
 * This protocol is published by VARA's author.
-* It is published without description or comments, only as source code.
-* It is not published on the the author's website, but is hosted on mega.nz, which occassionally decides to give a paywall or an hour delay for downloads. 
+* It is published without any description or documentation, as commentless source code.
+* It is not published directly on the author's website, but is made available through the file hosting service mega.nz, which sometimes decides to throw up a paywall or an hour-long delay for downloads. 
 * The source code is not a plain text file but instead is a PDF.
-* If the code from the PDF is copied into a text file, it then requires manual formatting corrections before it can run.
+* If the code from the PDF is copied into a text file, it then requires manual formatting corrections before it is valid.
 * There are no instructions on compiling or running the code, how it's intended to be used, or even what language it is in.
 * It appears to be a form of [Classic VisualBasic](https://en.wikipedia.org/wiki/Visual_Basic_(classic)) (circa 1991 to 1998) such as VB6.
-* The code has many incompatibilities with modern VisualBasic.Net.
+* The code has many non-trivial incompatibilities with modern VisualBasic.Net.
 * Unlike modern VB.NET, the IDE, compiler and runtime environments for VB6 are not free or open source.
-* The VB6 code does not run easily on modern systems. 
-* There is no documentation on which versions of VARA the the code is compatible with.
+* The VB Classic code does not run easily on modern systems. 
+* There is no documentation on which versions of VARA the code is compatible with.
  
 ## To investigate still
   
-* **I have not yet verified my version gives identical output to the original** — I haven't set up a VB6(?) environment. Particular things to test in VB6 version, and to compare to current and previous products:
+* **I have not yet verified my version gives identical output to the original** — I haven't set up a VB6(?) environment. Particular things to test in VB Classic version, and to compare to current and previous products:
    * Does it have identical output? (eg check byte order, input size limitations, one unique symbol message encoding/decoding, and 256 unique symbol encoding/decoding)
    * What's the preferred/default character encoding used by the original? Does it vary with Windows configuration? (though it's capable of sending any arbitrary byte sequences anyway)
    * Which bugs still occur? (e.g. has choice between HE0 and HE3 improved)
@@ -118,13 +118,13 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 * What compression is used by other Winlink related protocols and clients? (ardop, [pat](https://github.com/la5nta/pat))
 * What error correction is done in practice? (other than the single parity byte) Is it done on another layer? (There's some kind of ECC in the related ROS project, used for Weak Signal Radio Chat)
 * Was the provided source code actually used in production? How long ago? Have there been changes and bugfixes? Has efficiency been improved? The inclusion of progression events throughout the code (to give updates to the client about ongoing processing progress) implies it was actually used in production.
-* Does decoder still work if order of Huffman Tables are rearranged?
+* Does the decoder still work if order of the Huffman Tables are rearranged?
 * Does WinLink software directly interface with the Huffman encoder/decoder at all?
  
 ## License
 
 * This project may contain publicly-available propritory code that is otherwise difficult to access or use. The intention is to eventually replace any propritory code that remains in this project.
-* Documentation (this readme) is duel licensed CC-BY (any) and MIT (take your pick).
+* Documentation (this readme) is dual licensed CC-BY (any) and MIT (take your pick).
 
 ## Links
 
