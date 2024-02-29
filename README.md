@@ -75,15 +75,36 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
    
 ## Background
 
-* Protocols used for amateur radio in the US are required by the FCC to be published. 
-* This protocol is published by VARA's author as source code without comments. 
-* It is published as a PDF hosted on mega.nz (which occassionally decides to give a paywall or hour delay for downloads). 
-* The code cannot be pasted into a text file without then making manual corrections for formatting.
-* There are no instructions on using the code or even what language it is in.
-* It appears to be a form of [Classic VisualBasic](https://en.wikipedia.org/wiki/Visual_Basic_(classic)) (circa 1991 to 1998) such as VB6. It has many incompatibilities with modern VisualBasic.Net.
-* There is no documentation on which versions of VARA the huffman message format is compatible with. 
-* The VB6 code does not run easily on modern systems. 
+> “But the plans were on display…”
+> 
+> “On display? I eventually had to go down to the cellar to find them.”
+> 
+> “That’s the display department.”
+> 
+> “With a flashlight.”
+> 
+> “Ah, well, the lights had probably gone.”
+> 
+> “So had the stairs.”
+> 
+> “But look, you found the notice, didn’t you?”
+> 
+> “Yes,” said Arthur, “yes I did. It was on display in the bottom of a locked filing cabinet stuck in a disused lavatory with a sign on the door saying ‘Beware of the Leopard.”
+>
+> ― Douglas Adams, The Hitchhiker’s Guide to the Galaxy 
+
+* the FCC requires protocols used for amateur radio in the US to be published. (FCC 97.309)
+* This protocol is published by VARA's author.
+* It is published without description or comments, only as source code.
+* It is not published on the the author's website, but is hosted on mega.nz, which occassionally decides to give a paywall or an hour delay for downloads. 
+* The source code is not a plain text file but instead is a PDF.
+* If the code from the PDF is copied into a text file, it then requires manual formatting corrections before it can run.
+* There are no instructions on compiling or running the code, how it's intended to be used, or even what language it is in.
+* It appears to be a form of [Classic VisualBasic](https://en.wikipedia.org/wiki/Visual_Basic_(classic)) (circa 1991 to 1998) such as VB6.
+* The code has many incompatibilities with modern VisualBasic.Net.
 * Unlike modern VB.NET, the IDE, compiler and runtime environments for VB6 are not free or open source.
+* The VB6 code does not run easily on modern systems. 
+* There is no documentation on which versions of VARA the the code is compatible with.
  
 ## To investigate still
   
