@@ -6,7 +6,6 @@ VARA HF's Huffman Encoding algorithm, updated to VB.NET.
 
 * Document the data Huffman Encoding (compressed) format of the VARA protocol, which is used with WinLink on amateur radio. (Note: WinLink might disable VARA's compression and use its own FBB B1 compression instead.)
 * Create a reference implementation which runs on modern operating systems and compiles on modern compilers.
-* Help VARA HF users comply with FCC 97.309, by having a published version of the VARA protocol.
 
 ## Notes about VARA 
 
@@ -95,17 +94,16 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 >
 > ― Douglas Adams, The Hitchhiker’s Guide to the Galaxy 
 
-* the FCC requires protocols used for amateur radio in the US to be published. (FCC 97.309)
-* This protocol is "published" by VARA's author.
-* It is published without any notes, description, documentation or information of any kind
-* It is published as virtually commentless source code.
-* It is not published directly on the author's website, nor on any code repository website like github, gitlab or sourceforge, but is made available through the file hosting service mega.nz, a site notorious for having paywalls and giving hour-long delays to free-tier users to download files.
-* The source code is not a plain text file but instead is embedded in a PDF.
-* If the code from the PDF is copied into a text file, it then requires manual formatting corrections before it is valid due to line wrapping, etc.
+* The Federal Communications Commission (FCC) encourages the publication of information about novel amateur radio protocols.
+* The only information from about VARA's protocols from the author is virtually commentless source code.
+* It is published without any notes, description, explanations or additional documentation of any kind.
+* It is not published directly on the author's website, nor on any code repository website like github, gitlab or sourceforge, but as a link to file hosting service mega.nz, a site notorious for having paywalls and giving hour-long delays to free-tier users to download files.
+* The source code is not a plain text file but instead inside a PDF, despite having no acompanying description.
+* The code is invalid when copied out of the PDF, requiring manual reformatting.
 * There are no instructions on compiling or running the code, how it's intended to be used, or even what language it is in.
 * It appears to be a form of [Classic VisualBasic](https://en.wikipedia.org/wiki/Visual_Basic_(classic)) (circa 1991 to 1998) such as VB6, though there's no documentation on which version of Basic or VisualBasic it's best suited for.
 * The code has many non-trivial incompatibilities with modern VisualBasic.Net, such as evoking memory copying commands directly from kernel32.dll (which may have been the style back in 1998, I guess)
-* Variable names are sometimes inconsistantly or misleading named (Though not maliciously so; the code itself doesn't appear deliberately obfuscated)
+* Variables are sometimes inconsistant or misleading (Though probably not maliciously so; the code doesn't otherwise appear deliberately obfuscated)
 * Unlike modern VB.NET, the IDE, compiler and runtime environments for running Classic VB scripts are not free or open source.
 * The VB Classic code does not run easily on modern systems.
 * There is no documentation on which versions of VARA HF the code is compatible with, or if it works with the current version of VARA.
