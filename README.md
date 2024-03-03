@@ -96,9 +96,8 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 
 * The Federal Communications Commission (FCC) encourages the publication of information about novel amateur radio protocols.
 * The only information from about VARA's protocols from the author is virtually commentless source code.
-* It is published without any notes, description, explanations or additional documentation of any kind.
 * It is not published directly on the author's website, nor on any code repository website like github, gitlab or sourceforge, but as a link to file hosting service mega.nz, a site notorious for having paywalls and giving hour-long delays to free-tier users to download files.
-* The source code is not a plain text file but instead inside a PDF, despite having no acompanying description.
+* The source code is not a plain text file but instead inside a PDF.
 * The code is invalid when copied out of the PDF, requiring manual reformatting.
 * There are no instructions on compiling or running the code, how it's intended to be used, or even what language it is in.
 * It appears to be a form of [Classic VisualBasic](https://en.wikipedia.org/wiki/Visual_Basic_(classic)) (circa 1991 to 1998) such as VB6, though there's no documentation on which version of Basic or VisualBasic it's best suited for.
