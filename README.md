@@ -4,14 +4,16 @@ VARA HF's Huffman Encoding algorithm, updated to VB.NET.
 
 ## Project Goals
 
-* Document the data Huffman Encoding (compressed) format of the VARA protocol, which is used with WinLink on amateur radio. (Note: WinLink might disable VARA's compression and use its own FBB B1 compression instead.)
+* Document the Huffman Encoding (compressed) format of messages (or packets) sent via the VARA protocol, which is used with WinLink on amateur radio.
 * Create a reference implementation which runs on modern operating systems and compiles on modern compilers.
 
 ## Notes about VARA 
 
 * VARA does not stand for anything. 
 * It is proprietary software developed by EA5HVK.
-* VARA HF also refers to the soundcard modem modulation scheme. This document and project only covers the data which is sent by it, not the modulation	(FSK, BPSK, 4-8PSK, 16-32QAM at various symbol rates and bandwidths)
+* VARA HF also refers to the soundcard modem modulation scheme. This document and project only covers the data which is sent by it, not the modulation	such as FSK, BPSK, 4-8PSK, 16-32QAM at various symbol rates and bandwidths.
+* WinLink might disable VARA's compression and use its own FBB B1 compression instead. Not sure / untested.
+* VARA's high speed protocol might be different. Not sure / untested.
 
 # Reverse engineered VARA specification
 
