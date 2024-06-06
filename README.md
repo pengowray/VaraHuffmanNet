@@ -4,16 +4,17 @@ VARA HF's Huffman Encoding algorithm, updated to VB.NET.
 
 ## Project Goals
 
-* Document the Huffman Encoding (compressed) format of messages (or packets) sent via the VARA protocol, which is used with WinLink on amateur radio.
-* Create a reference implementation which runs on modern operating systems and compiles on modern compilers.
+* [X] Document the Huffman Encoding (compressed) format of messages (or packets) sent via the VARA protocol, which is used with WinLink on amateur radio.
+* [X] Create a reference implementation which runs on modern operating systems and compiles on modern compilers.
 
 ## Notes about VARA 
 
 * VARA does not stand for anything. 
 * It is proprietary software developed by EA5HVK.
 * VARA HF also refers to the soundcard modem modulation scheme. This document and project only covers the data which is sent by it, not the modulation	such as FSK, BPSK, 4-8PSK, 16-32QAM at various symbol rates and bandwidths.
-* WinLink might disable VARA's compression and use its own FBB B1 compression instead. Not sure / untested.
-* VARA's high speed protocol might be different. Not sure / untested.
+* WinLink might disable VARA's compression and use its own FBB B1 compression instead. (Not sure / untested)
+* VARA's high speed protocol might be different. (Not sure / untested)
+* Documentation of VARA's Huffman encoding scheme first appeared on EA5HVK's website in Feb 2021. It appears on the site with the link text "VARA Huffman compression" pointing to source code written in an unknown version of VisualBasic inside a pdf of a word document on filesharing site mega.nz. ([Link to first apperance on the Wayback Machine](https://web.archive.org/web/20210223192503/https://rosmodem.wordpress.com/))
 
 # Reverse engineered VARA specification
 
@@ -26,14 +27,14 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 
   *  There's no compression with the format
 
-  *  Here's why last character of the header is `\r`, carriage return (CR), if you're curious. It appears to be a neat little hack. The `\r` was used by MacOS 9 as a line separator, but Winlink uses it as half of the `\r\n` line separator found on Windows and DOS. In a DOS terminal, the `\r` moves the text cursor back to the start of the line, while the `\n` starts a new line. By leaving off the new line, if the whole packet is printed directly to a Windows terminal, the `\r` returns the cursor to the start of the header, so the message following it will overwrite and hide the "HE0" of the header. The user will then only see the message and not the header. I don't know if this hack was ever useful in practice.
-
-  *  Plain Bytes mode is used when Huffman compression does not have decrease the message size, or that's the intention. VARA's provided source code appears to be a little suboptimial. When considering the size of the compressed message, it doesn't consider the size of the Huffman tables, so it underestimates the actual size of the Huffman compressed message. This means for smaller messages it will sometimes choose to compress the message even when this adds more bytes. (Is this the case with the release version too? Can we double check this behavior?)
-
   *  Empty messages are made up of just the four header bytes and nothing else.
 
   *  Unlike Huffman encoded messages, there is no parity byte, nor message length in the header.
-     
+
+  *  If you're curious, here's why last character of the header is `\r`, also known a carriage return (CR). It appears to be a neat little hack. The `\r` was used by MacOS 9 as a line separator, but Winlink uses it as half of the `\r\n` line separator found on Windows and DOS. In a DOS terminal, the `\r` moves the text cursor back to the start of the line, while the `\n` starts a new line. By leaving off the new line, if the whole packet is printed directly to a Windows terminal, the `\r` returns the cursor to the start of the header, so the message following it will overwrite and hide the "HE0" of the header. The user will then only see the message and not the header. I don't know if this hack was ever useful in practice.
+
+  *  Plain Bytes mode is used when Huffman compression does not decrease the message size, or that's the intention. VARA's provided source code appears to be suboptimial in this regard. When considering the size of the compressed message, it doesn't consider the size of the Huffman tables, so it underestimates the actual size of the Huffman compressed message. This means for smaller messages it will sometimes choose to compress the message even when this adds more bytes. (Is this the case with the release version too? Can we double check this behavior?)
+
 ## Huffman Message format
 
 * Bytes 0 to 4: begin with the 4 byte header `48 45 33 0D` "HE3\r"  
@@ -41,14 +42,15 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
   *  Only byte 2 differs from Plain Bytes message header (ascii 3 vs 0)
   *  Messages which don't contain either header ("HE0\r" nor "HE3\r") are rejected
 * Byte 5: Parity byte
-  *  It's calculated by XORing all bytes of original message (uncompressed without the header); Wiki's [longitudinal parity check](https://en.wikipedia.org/wiki/Longitudinal_redundancy_check) points out that "with this checksum, any transmission error which flips a single bit of the message, or an odd number of bits, will be detected as an incorrect checksum." Note that the message must be decoded before parity is checked.
+  *  It's calculated by XORing all bytes of original message (uncompressed without the header); Wikipedia's page on [longitudinal parity check](https://en.wikipedia.org/wiki/Longitudinal_redundancy_check) points out that "with this checksum, any transmission error which flips a single bit of the message, or an odd number of bits, will be detected as an incorrect checksum."
+  *  Note that the message must be fully decoded before parity is checked.
   *  It is variously referred in the source code as a [CRC](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) or Checksum. Note that it is _not_ CRC-8.
 * Bytes 6,7,8,9: Integer with length of decoded message in bytes (without header). Little endian like the rest of integers, I guess.
 * Bytes 10 and 11: SymbolCount: The number of unique (distinct) symbols (8-bit characters) found in the original message
-  *  Same as the number of entries in the Huffman Table 1 (or double the number for the table's byte length)
+  *  Same as the number of entries in the Huffman Table 1 (or double the number for the table's size in bytes)
   *  Which is also the number of leaf nodes in the Huffman tree
-  *  Possible values are 1 to 256 (hex: `01 00` to `00 01`). Zero-symbol or empty messages are sent as an empty Plain Bytes message and not Huffman encoded, so this field does not have a 0 value in normal operation (unless ForceHuffman option is used)
-  *  For example, a message with only the text `VARA` will give a value of 3. `03 00`
+  *  Typical values are 1 to 256 (hex: `01 00` to `00 01`). Zero-symbol or empty messages are typically sent as an empty Plain Bytes message and not Huffman encoded, so this field does not have a 0 value in normal operation, unless you use the `ForceHuffman` option.
+  *  For example, a message with only the text `VARA` will give a value of 3. `03 00` because it contains three symbols: `A`, `R`, and `V`.
   *  Bytes 10 and 11 together make up a little-endian 16-bit integer. Unless the message contains all 256 characters, byte 11 has a value of 0. (TODO: confirm this)
   *  All symbols are 8-bit bytes (e.g. typically ascii characters). There's no support for other sized symbols or sequences.
  
@@ -98,13 +100,13 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 
 * The Federal Communications Commission (FCC) encourages the publication of information about novel amateur radio protocols.
 * The only information from about VARA's protocols from the author is virtually commentless source code.
-* It is not published directly on the author's website, nor on any code repository website like github, gitlab or sourceforge, but as a link to file hosting service mega.nz, a site notorious for having paywalls and giving hour-long delays to free-tier users to download files.
+* It is not published directly on the author's website, nor on any code repository website like github, gitlab or sourceforge, but published as a link labeled "[VARA Huffman compression](https://mega.nz/file/DCAxiKAJ#ALMqL6SwQYktbFmORomy68Mry-IY3UvxvJJY3xfwn3o)" which goes to file hosting service mega.nz, a site notorious for having paywalls and giving hour-long delays to free-tier users to download files.
 * The source code is not a plain text file but instead inside a PDF.
 * The code is invalid when copied out of the PDF, requiring manual reformatting.
 * There are no instructions on compiling or running the code, how it's intended to be used, or even what language it is in.
 * It appears to be a form of [Classic VisualBasic](https://en.wikipedia.org/wiki/Visual_Basic_(classic)) (circa 1991 to 1998) such as VB6, though there's no documentation on which version of Basic or VisualBasic it's best suited for.
-* The code has many non-trivial incompatibilities with modern VisualBasic.Net, such as evoking memory copying commands directly from kernel32.dll (which may have been the style back in 1998, I guess)
-* Variables are sometimes inconsistant or misleading (Though probably not maliciously so; the code doesn't otherwise appear deliberately obfuscated)
+* The code has many non-trivial incompatibilities with modern VisualBasic (VB.Net), for example it evokes memory copying commands directly from kernel32.dll, which could have possibly been the style back in 1998, but is unnecessary and broken today.
+* Variable names are sometimes inconsistant or misleading, though probably not maliciously so; the code doesn't otherwise appear deliberately obfuscated.
 * Unlike modern VB.NET, the IDE, compiler and runtime environments for running Classic VB scripts are not free or open source.
 * The VB Classic code does not run easily on modern systems.
 * There is no documentation on which versions of VARA HF the code is compatible with, or if it works with the current version of VARA.
@@ -133,6 +135,8 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 ## Links
 
 * [VARA HF](https://www.sigidwiki.com/wiki/VARA_HF) on Signal Identification Wiki (sigidwik)
+* [VARA modes](https://ardop.groups.io/g/developers/message/479): List of VARA HF 4.0 modem modes VARA FM v3.0.5 modes (via ardop.groups.io)
+* [VARA Protocol Native TNC Commands](https://github.com/n8jja/Pat-Vara/blob/main/VARA%20Protocol%20Native%20TNC%20Commands.pdf) (via Pat-Vara project)
 * [VARA news](https://www.winlink.org/tags/vara) on Winlink
 * Winlink "Open B2F" (Winlink Message Structure and B2 Forwarding Protocol): 
    * [Documentation](https://winlink.org/B2F): FBB B1 compression, using LZH or LZHUF compression algorithm 
