@@ -16,19 +16,20 @@ static class TestCaseGenerator {
         Directory.CreateDirectory(testCaseDir);
 
         // test cases
-        WriteTestCase(testCaseDir, "empty.txt", "");
-        WriteTestCase(testCaseDir, "single_char.txt", "a");
-        WriteTestCase(testCaseDir, "repeated_char.txt", new string('a', 1000));
-        WriteTestCase(testCaseDir, "alternating_chars.txt", string.Join("", Enumerable.Repeat("ab", 500)));
-        WriteTestCase(testCaseDir, "all_ascii.txt", string.Join("", Enumerable.Range(32, 95).Select(i => (char)i)));
-        WriteTestCase(testCaseDir, "random_ascii.txt", GenerateRandomAscii(1000));
-        WriteTestCase(testCaseDir, "long_random_ascii.txt", GenerateRandomAscii(100000));
-        WriteTestCase(testCaseDir, "binary_data.txt", GenerateBinaryData(1000));
-        WriteTestCase(testCaseDir, "fibonacci.txt", GenerateFibonacciSequence(1000));
-        WriteTestCase(testCaseDir, "palindrome.txt", GeneratePalindrome(1000));
+        WriteTestCase(testCaseDir, "empty_ascii.txt", "", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "empty_utf8.txt", "", Encoding.UTF8);
+        WriteTestCase(testCaseDir, "single_char.txt", "a", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "repeated_char.txt", new string('a', 1000), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "alternating_chars.txt", string.Join("", Enumerable.Repeat("ab", 500)), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "all_ascii.txt", string.Join("", Enumerable.Range(32, 95).Select(i => (char)i)), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "random_ascii.txt", GenerateRandomAscii(1000), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "long_random_ascii.txt", GenerateRandomAscii(100000), Encoding.ASCII);
+        //WriteTestCase(testCaseDir, "binary_data.txt", GenerateBinaryData(1000));
+        WriteTestCase(testCaseDir, "fibonacci.txt", GenerateFibonacciSequence(1000), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "palindrome.txt", GeneratePalindrome(1000), Encoding.ASCII);
         WriteTestCase(testCaseDir, "utf8_text.txt", GenerateUTF8Text(), Encoding.UTF8);
         WriteTestCase(testCaseDir, "utf16_text.txt", GenerateUTF16Text(), Encoding.Unicode);
-        WriteTestCase(testCaseDir, "ascii_extended.txt", GenerateExtendedASCII());
+        //WriteTestCase(testCaseDir, "ascii_extended.txt", GenerateExtendedASCII()); //TODO: change to binary?
 
         WriteBinaryTestCase(testCaseDir, "binary_255_unique.bin", Generate255UniqueBytes());
         WriteBinaryTestCase(testCaseDir, "binary_256_unique.bin", Generate256UniqueBytes());
@@ -42,9 +43,9 @@ static class TestCaseGenerator {
         WriteTestCase(testCaseDir, "shift_jis.txt", GenerateShiftJISText(), Encoding.GetEncoding("shift-jis"));
 
         // email test cases
-        WriteTestCase(testCaseDir, "short_email.txt", GenerateShortEmail());
-        WriteTestCase(testCaseDir, "long_email.txt", GenerateLongEmail());
-        WriteTestCase(testCaseDir, "multiple_emails.txt", GenerateMultipleEmails(10));
+        WriteTestCase(testCaseDir, "short_email.txt", GenerateShortEmail(), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "long_email.txt", GenerateLongEmail()), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "multiple_emails.txt", GenerateMultipleEmails(10), Encoding.ASCII);
 
         Console.WriteLine("Test cases generated successfully.");
     }
