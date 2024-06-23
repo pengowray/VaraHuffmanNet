@@ -37,6 +37,9 @@ void DebugInfoExample() {
     DebugInfoPrinter.PrintDebugInfo(text);
 }
 
+Console.WriteLine("Regenerating test files...");
+TestCaseGenerator.GenerateTests();
+
 
 Console.WriteLine("Usage example");
 UsageExample();
