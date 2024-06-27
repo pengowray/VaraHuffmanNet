@@ -113,12 +113,18 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 
 ## To investigate still
   
-* **I have not yet verified my version gives identical output to the original** — I haven't set up a VB6(?) environment. Particular things to test in VB Classic version, and to compare to current and previous products:
-   * Does it have identical output? (eg check byte order, input size limitations, one unique symbol message encoding/decoding, and 256 unique symbol encoding/decoding)
-   * What's the preferred/default character encoding used by the original? Does it vary with Windows configuration? (though it's capable of sending any arbitrary byte sequences anyway)
-   * Which bugs still occur? (e.g. has choice between HE0 and HE3 improved)
-   * Memory copying issues
-   * Does it support reading 0-length Huffman Encoding messages? (It checks for them but not sure what original code returns. It never generates them). The original Huffman encoder will avoid encoding an empty message, but it looks like: `48 45 33 0D 00 00 00 00 00 00 00`
+* [X] Verify VaraHuffmanNet gives identical output to the original VB6 code:
+   * [X] encoding of binary data
+   * [ ] todo: legacy mode to emulate vb6 heuristics of when to choose HE0 over HE3, and auto mode to prefer smallest size
+   * [ ] input size limitations, 
+   * [X] one unique symbol message encoding/decoding, and 256 unique symbol encoding/decoding)
+   * [ ] What's the preferred/default character encoding used by the original? Does it vary with Windows configuration? (though it's capable of sending any arbitrary byte sequences anyway). Appears to use Windows' locale ANSI mode if encoding from a string. 
+   * [ ] Memory copying issues?
+   * [ ] Does it support reading 0-length Huffman Encoding messages? (It checks for them but not sure what original code returns. It never generates them). The original Huffman encoder will avoid encoding an empty message, but it looks like: `48 45 33 0D 00 00 00 00 00 00 00`
+* To compare with current Vara software:
+   * [ ] Which modes use Huffman Encoding and when?
+   * [ ] Which bugs still occur? (e.g. has heuristics for choosing between HE0 and HE3 improved?)
+   * [ ] when are text or binary modes assumed?
 * Compare efficency of gz or bzip2 (in a small number of tests they appear much better for anything of a non-trivial length, such as short or long email messages including email headers)
 * What compression is used by other Winlink related protocols and clients? (ardop, [pat](https://github.com/la5nta/pat))
 * What error correction is done in practice? (other than the single parity byte) Is it done on another layer? (There's some kind of ECC in the related ROS project, used for Weak Signal Radio Chat)
