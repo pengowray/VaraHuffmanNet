@@ -1,6 +1,6 @@
 # VaraHuffmanNet
 
-VARA HF's Huffman Encoding algorithm, updated to VB.NET.
+VARA HF's Huffman Encoding algorithm, updated to C# and VB.NET.
 
 ## Project Goals
 
@@ -11,7 +11,7 @@ VARA HF's Huffman Encoding algorithm, updated to VB.NET.
 
 * VARA does not stand for anything. 
 * It is proprietary software developed by EA5HVK.
-* VARA HF also refers to the soundcard modem modulation scheme. This document and project only covers the data which is sent by it, not the modulation	such as FSK, BPSK, 4-8PSK, 16-32QAM at various symbol rates and bandwidths.
+* VARA HF also refers to the soundcard modem modulation scheme. This document and project only cover the data which is sent by it. It does not cover the modulation	 (such as FSK, BPSK, 4-8PSK, or 16-32QAM at various symbol rates and bandwidths).
 * WinLink might disable VARA's compression and use its own FBB B1 compression instead. (Not sure / untested)
 * VARA's high speed protocol might be different. (Not sure / untested)
 * Documentation of VARA's Huffman encoding scheme first appeared on EA5HVK's website in Feb 2021. It appears on the site with the link text "VARA Huffman compression" pointing to source code written in an unknown version of VisualBasic inside a pdf of a word document on filesharing site mega.nz. ([Link to first apperance on the Wayback Machine](https://web.archive.org/web/20210223192503/https://rosmodem.wordpress.com/))
@@ -63,9 +63,9 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
   *  Ordered by ascii value (0 to 255) in the original source code but any order would probably work. (If you were to make a robust VARA decoder, you'd want to test other orders in your unit tests)
   *  see "Huffman Table 2" below, which comes after the encoded message for the rest of the data needed for Huffman decoding.
  
-* Encoded Message 
-  *  A message with a length of any number of bytes, made up of variable length Huffman prefix codes. 
-  *  Each prefix code represents one 8-bit symbol (such as an ascii character)
+* Encoded Message Body
+  *  A message body with a length of any number of bytes, made up of variable length Huffman prefix codes. 
+  *  Each Huffman prefix code represents one 8-bit symbol (such as an ascii character)
   *  It's zero padded: If the encoded message ends with a partial byte, the remaining bits are set to 0
  
 * Huffman Table 2: List of prefix codes
@@ -76,7 +76,7 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
   *  Huffman Table 1 (above) gives the length of each prefix code, and what symbol (e.g. ascii character) it represeents
 
 * Notes:
-  *  Partial decoding or streaming of Huffman Encoded messages cannot be supported: The entire Huffman encoded message must be received before any of it can be practically decoded (because Huffman Table 2, needed to decode the message, comes at the end, after the encoded message)
+  *  Partial decoding or streaming of Huffman Encoded messages cannot be supported: The entire Huffman encoded message must be received before any of it can be practically decoded (because Huffman Table 2, needed to decode the message body, comes at the end, after the encoded message body)
    
 ## Background
 
@@ -99,7 +99,7 @@ There are two message formats, which I'm calling "Plain Bytes" and "Huffman Enco
 > ― Douglas Adams, The Hitchhiker’s Guide to the Galaxy 
 
 * The Federal Communications Commission (FCC) encourages the publication of information about novel amateur radio protocols.
-* The only information from about VARA's protocols from the author is virtually commentless source code.
+* The only information about VARA's protocols from the author is virtually commentless source code.
 * It is not published directly on the author's website, nor on any code repository website like github, gitlab or sourceforge, but published as a link labeled "[VARA Huffman compression](https://mega.nz/file/DCAxiKAJ#ALMqL6SwQYktbFmORomy68Mry-IY3UvxvJJY3xfwn3o)" which goes to file hosting service mega.nz, a site notorious for having paywalls and giving hour-long delays to free-tier users to download files.
 * The source code is not a plain text file but instead inside a PDF.
 * The code is invalid when copied out of the PDF, requiring manual reformatting.
