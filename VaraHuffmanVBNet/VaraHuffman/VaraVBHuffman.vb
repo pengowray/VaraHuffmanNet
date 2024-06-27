@@ -75,7 +75,7 @@ Public Class VaraHuffmanVB
         Return NodesCount
     End Function
 
-    Public Function EncodeByte(InputArray() As Byte, Optional ByteLen As Long = -1, Optional Encoding As MessageType = MessageType.Auto) As Byte()
+    Public Function EncodeBytes(InputArray() As Byte, Optional ByteLen As Long = -1, Optional Encoding As MessageType = MessageType.Auto) As Byte()
         Dim i As Long, j As Long, Checksum As Byte, BitPos As Byte, lNode1 As Long
         Dim lNode2 As Long, lNodes As Long, HEncodedMessageLen As Long, HuffmanIndexBitLenAndSome As Integer
         Dim lWeight1 As Long, lWeight2 As Long, Result() As Byte, TempByte As Byte
@@ -369,7 +369,7 @@ Public Class VaraHuffmanVB
         Dim ByteArray() As Byte
         'ByteArray() = StrConv(Text, vbFromUnicode)
         ByteArray = System.Text.Encoding.GetEncoding(1252).GetBytes(Text)
-        Call EncodeByte(ByteArray, Len(Text))
+        Call EncodeBytes(ByteArray, Len(Text))
         'EncodeString = StrConv(ByteArray(), vbUnicode)
         EncodeString = System.Text.Encoding.GetEncoding(1252).GetString(ByteArray)
     End Function

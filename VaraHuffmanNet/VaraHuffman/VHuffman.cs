@@ -7,7 +7,8 @@ namespace VaraHuffman {
         public enum MessageType {
             Auto,
             NoCompression,
-            Huffman
+            Huffman,
+            //TODO: add AutoLegacy to use original code's heuristics for deciding when to compress
         }
 
         public static readonly byte[] NoCompressionHeader = new byte[4] { 72, 69, 48, 13 }; // hex: 48-45-30-0D "HE0<CR>"
@@ -68,19 +69,23 @@ namespace VaraHuffman {
             return nodesCount;
         }
 
-        public byte[] EncodeByte(byte[] inputArray, int byteLen = -1, MessageType encoding = MessageType.Auto) {
+        public byte[] EncodeBytes(byte[] inputArray, MessageType encoding) {
+            return EncodeBytes(inputArray, -1, encoding);
+        }
+
+        public byte[] EncodeBytes(byte[] inputArray, int byteLen = -1, MessageType encoding = MessageType.Auto) {
             if (byteLen == -1) {
                 byteLen = inputArray.Length;
             }
 
             if (byteLen == 0 && encoding != MessageType.Huffman) {
-                byte[] emptyResult = new byte[byteLen + 4];
-                emptyResult[0] = NoCompressionHeader[0];
-                emptyResult[1] = NoCompressionHeader[1];
-                emptyResult[2] = NoCompressionHeader[2];
-                emptyResult[3] = NoCompressionHeader[3];
-                Debug("0 ByteLen");
-                return emptyResult;
+                Debug("HE0; 0 ByteLen");
+                return EmptyUncompressedOutput();
+            }
+
+            if (encoding == MessageType.NoCompression) {
+                Debug($"HE0; ByteLen:{byteLen}; Encoding:{encoding}");
+                return NoCompression(inputArray, byteLen);
             }
 
             byte[] result = new byte[523];
@@ -177,16 +182,11 @@ namespace VaraHuffman {
                 }
             }
             hEncodedMessageLen = (hEncodedMessageLen % 8 == 0) ? hEncodedMessageLen / 8 : hEncodedMessageLen / 8 + 1;
-
+            
+            // TODO: Check actual message length including Huffman tables and checksum to compare with uncompressed message
             if (encoding == MessageType.NoCompression || (encoding == MessageType.Auto && (hEncodedMessageLen == 0 || hEncodedMessageLen > byteLen))) {
-                byte[] noCompressionResult = new byte[byteLen + 4];
-                Array.Copy(inputArray, 0, noCompressionResult, 4, byteLen);
-                noCompressionResult[0] = NoCompressionHeader[0];
-                noCompressionResult[1] = NoCompressionHeader[1];
-                noCompressionResult[2] = NoCompressionHeader[2];
-                noCompressionResult[3] = NoCompressionHeader[3];
-                Debug($"HE0; lLength:{hEncodedMessageLen} > ByteLen:{byteLen}; Encoding:{encoding}");
-                return noCompressionResult;
+                Debug($"HE0; Length:{hEncodedMessageLen} > ByteLen:{byteLen}; Encoding:{encoding}");
+                return NoCompression(inputArray, byteLen);
             }
 
             byte checksum = 0;
@@ -264,17 +264,39 @@ namespace VaraHuffman {
             return result;
         }
 
-        public byte[] DecodeByte(byte[] inputBytes, int byteLen = -1) {
+        private static byte[] EmptyUncompressedOutput() {
+            byte[] emptyResult = new byte[4];
+            emptyResult[0] = NoCompressionHeader[0];
+            emptyResult[1] = NoCompressionHeader[1];
+            emptyResult[2] = NoCompressionHeader[2];
+            emptyResult[3] = NoCompressionHeader[3];
+            return emptyResult;
+        }
+
+        private byte[] NoCompression(byte[] inputArray, int byteLen) {
+            byte[] noCompressionResult = new byte[byteLen + 4];
+            Array.Copy(inputArray, 0, noCompressionResult, 4, byteLen);
+            noCompressionResult[0] = NoCompressionHeader[0];
+            noCompressionResult[1] = NoCompressionHeader[1];
+            noCompressionResult[2] = NoCompressionHeader[2];
+            noCompressionResult[3] = NoCompressionHeader[3];
+            return noCompressionResult;
+        }
+
+        public byte[] DecodeBytes(byte[] inputBytes) {
+            return DecodeBytes(inputBytes, -1);
+        }
+        public byte[] DecodeBytes(byte[] inputBytes, int byteLen) {
             if (byteLen == -1) {
                 byteLen = inputBytes.Length;
             }
 
             // Check for header: "HE0\r" or "HE3\r"
-            if (inputBytes[0] != 72 || inputBytes[1] != 69 || inputBytes[3] != 13) {
+            if (inputBytes[0] != HuffmanHeader[0] || inputBytes[1] != HuffmanHeader[1] || inputBytes[3] != HuffmanHeader[3]) {
                 throw new VaraHuffException("Invalid header");
             }
 
-            if (inputBytes[2] == 48) // '0'
+            if (inputBytes[2] == NoCompressionHeader[2]) // '0'
             {
                 byte[] emptyResult = new byte[byteLen - 4];
                 Array.Copy(inputBytes, 4, emptyResult, 0, byteLen - 4);
@@ -282,7 +304,7 @@ namespace VaraHuffman {
                 return emptyResult;
             }
 
-            if (inputBytes[2] != 51) // '3'
+            if (inputBytes[2] != HuffmanHeader[2]) // '3'
             {
                 throw new VaraHuffException("The data either was not compressed with HE3 or is corrupt (identification string not found)");
             }

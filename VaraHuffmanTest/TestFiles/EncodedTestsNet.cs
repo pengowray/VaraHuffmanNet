@@ -6,13 +6,11 @@ using System.Numerics;
 using VaraHuffman;
 using VaraVBNetHuffman;
 
-
 static class EncodedTestsNet {
 
     static string BasePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "HuffmanTestCases");
 
     public static void GenerateNetEncodings() {
-        //Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         string testFolder = "tests";
         var testCaseDir = BasePath == null ? testFolder : Path.Combine(BasePath, testFolder);
@@ -46,9 +44,9 @@ static class EncodedTestsNet {
         var vara = new VaraHuffmanVB();
         vara.ShowDebug = false;
 
-        var encHEx = vara.EncodeByte(bytes, bytes.Length); // auto choose best
-        var encHE0 = vara.EncodeByte(bytes, bytes.Length, VaraHuffmanVB.MessageType.NoCompression); 
-        var encHE3 = vara.EncodeByte(bytes, bytes.Length, VaraHuffmanVB.MessageType.Huffman); 
+        var encHEx = vara.EncodeBytes(bytes, bytes.Length); // auto choose best
+        var encHE0 = vara.EncodeBytes(bytes, bytes.Length, VaraHuffmanVB.MessageType.NoCompression); 
+        var encHE3 = vara.EncodeBytes(bytes, bytes.Length, VaraHuffmanVB.MessageType.Huffman); 
 
         string filename = Path.GetFileName(file);
         string fileNameHEx = filename + ".HEx";
@@ -67,9 +65,9 @@ static class EncodedTestsNet {
         var vara = new VHuffman();
         vara.ShowDebug = false;
 
-        var encHEx = vara.EncodeByte(bytes, bytes.Length); // auto choose best
-        var encHE0 = vara.EncodeByte(bytes, bytes.Length, VHuffman.MessageType.NoCompression);
-        var encHE3 = vara.EncodeByte(bytes, bytes.Length, VHuffman.MessageType.Huffman);
+        var encHEx = vara.EncodeBytes(bytes, VHuffman.MessageType.Auto); // auto choose best
+        var encHE0 = vara.EncodeBytes(bytes, VHuffman.MessageType.NoCompression);
+        var encHE3 = vara.EncodeBytes(bytes, VHuffman.MessageType.Huffman);
 
         string filename = Path.GetFileName(file);
         string fileNameHEx = filename + ".HEx";

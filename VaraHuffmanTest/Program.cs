@@ -8,7 +8,7 @@ void UsageExample() {
     string message = "This is an example message. 73";
     byte[] bytesSequenceToEncode = Encoding.ASCII.GetBytes(message); // UTF8 and other encodings will work successfully, but may not be compatible with other systems (todo: find next best encoding for compatibility)
     var encoder = new VaraHuffmanVB();
-    byte[] encodedMessage = encoder.EncodeByte(bytesSequenceToEncode);
+    byte[] encodedMessage = encoder.EncodeBytes(bytesSequenceToEncode);
     Console.WriteLine($"Encoded message: {BitConverter.ToString(encodedMessage)}");
 
     // decoding:
@@ -40,7 +40,7 @@ void DebugInfoExample() {
 Console.WriteLine("Regenerating test files...");
 TestCaseGenerator.GenerateTests();
 EncodedTestsNet.GenerateNetEncodings();
-
+CompareOutput.Main();
 
 Console.WriteLine("Usage example");
 UsageExample();

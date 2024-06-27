@@ -40,11 +40,11 @@ public static class DebugInfoPrinter {
         MemoryStream bzip2Stream = new MemoryStream();
         BZip2.Compress(byteStream, bzip2Stream, false, 9);
 
-        var encHEx = Vara.EncodeByte(bytes, bytes.Length);
+        var encHEx = Vara.EncodeBytes(bytes, bytes.Length);
         //Console.WriteLine("---no compression---");
-        var encHE0 = Vara.EncodeByte(bytes, bytes.Length, VaraHuffmanVB.MessageType.NoCompression);
+        var encHE0 = Vara.EncodeBytes(bytes, bytes.Length, VaraHuffmanVB.MessageType.NoCompression);
         //Console.WriteLine("---end no compression---");
-        var encHE3 = Vara.EncodeByte(bytes, bytes.Length, VaraHuffmanVB.MessageType.Huffman);
+        var encHE3 = Vara.EncodeBytes(bytes, bytes.Length, VaraHuffmanVB.MessageType.Huffman);
 
         //string encoded = Base64Encode(bytes); //Encoding.ASCII.GetString(bytes);
         Console.WriteLine($"byte length  : {bytes.Length} bytes (100%)");

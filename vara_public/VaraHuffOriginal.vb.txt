@@ -92,6 +92,7 @@ Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
             End If
         End If
     Next
+    
     For i = 0 To 255
         If (CharCount(i) > 0) Then
             With Nodes(NodesCount)
@@ -147,6 +148,7 @@ Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
         Nodes(lNode2).ParentNode = NodesCount
         NodesCount = NodesCount + 1
     Next
+    
     ReDim Bytes.Data(0 To 255)
     Call CreateBitSequences(Nodes(), NodesCount - 1, Bytes, CharValue)
 
@@ -189,10 +191,12 @@ Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
     BitValue(5) = 2 ^ 5
     BitValue(6) = 2 ^ 6
     BitValue(7) = 2 ^ 7
+    
     Count = 0
     For i = 0 To 255
         If (CharValue(i).Count > 0) Then Count = Count + 1
     Next
+    
     Call CopyMem(Result(ResultLen), Count, 2)
     ResultLen = ResultLen + 2
     Count = 0
@@ -256,20 +260,24 @@ Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
             End If
         End If
     Next
+    
     If (BitPos > 0) Then
         Result(ResultLen) = Char
         ResultLen = ResultLen + 1
     End If
+    
     ReDim ByteArray(0 To ResultLen - 1)
     Call CopyMem(ByteArray(0), Result(0), ResultLen)
     If (CurrProgress <> 100) Then RaiseEvent Progress(100)
 End Sub
+
 Public Function DecodeString(Text As String) As String
     Dim ByteArray() As Byte
     ByteArray() = StrConv(Text, vbFromUnicode)
     Call DecodeByte(ByteArray, Len(Text))
     DecodeString = StrConv(ByteArray(), vbUnicode)
 End Function
+
 Public Function EncodeString(Text As String) As String
     Dim ByteArray() As Byte
     ByteArray() = StrConv(Text, vbFromUnicode)
@@ -394,6 +402,7 @@ DecodeFinished:
     Call CopyMem(ByteArray(0), Result(0), ResultLen)
     If (CurrProgress <> 100) Then RaiseEvent Progress(100)
 End Sub
+
 Private Sub CreateBitSequences(Nodes() As HUFFMANTREE, ByVal NodeIndex As Integer, Bytes As ByteArray, CharValue() As ByteArray)
     Dim NewBytes As ByteArray
     If (Nodes(NodeIndex).Value > -1) Then
