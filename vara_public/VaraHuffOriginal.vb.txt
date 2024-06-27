@@ -1,11 +1,13 @@
-﻿Option Explicit On
+Option Explicit
 
 Private Const PROGRESS_CALCFREQUENCY = 7
 Private Const PROGRESS_CALCCRC = 5
 Private Const PROGRESS_ENCODING = 88
 Private Const PROGRESS_DECODING = 89
 Private Const PROGRESS_CHECKCRC = 11
+
 Event Progress(Procent As Integer)
+
 Private Type HUFFMANTREE
     ParentNode As Integer
     RightNode As Integer
@@ -13,15 +15,16 @@ Private Type HUFFMANTREE
     Value As Integer
     Weight As Long
 End Type
+
 Private Type ByteArray
     Count As Byte
     Data() As Byte
 End Type
-Private Declare Sub CopyMem Lib "kernel32" Alias "RtlMoveMemory" ()
-(Destination As Any, Source As Any, ByVal Length As Long)
+
+Private Declare Sub CopyMem Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+
 'Create Huffman tree
-Private Sub CreateTree(Nodes() As HUFFMANTREE, NodesCount As Long,
-Char As Long, Bytes As ByteArray)
+Private Sub CreateTree(Nodes() As HUFFMANTREE, NodesCount As Long, Char As Long, Bytes As ByteArray)
     Dim a As Integer, NodeIndex As Long
 
     NodeIndex = 0
@@ -52,6 +55,7 @@ Char As Long, Bytes As ByteArray)
     Next
     Nodes(NodeIndex).Value = Char
 End Sub
+
 'Encode routine
 Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
     Dim i As Long, j As Long, Char As Byte, BitPos As Byte, lNode1 As Long
@@ -63,8 +67,7 @@ Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
 
     If (ByteLen = 0) Then
         ReDim Preserve ByteArray(0 To ByteLen + 3)
-        If (ByteLen > 0) Then Call CopyMem(ByteArray(4), ByteArray(0),
-       ByteLen)
+        If (ByteLen > 0) Then Call CopyMem(ByteArray(4), ByteArray(0), ByteLen)
         ByteArray(0) = 72
         ByteArray(1) = 69
         ByteArray(2) = 48
@@ -148,8 +151,7 @@ Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
     Call CreateBitSequences(Nodes(), NodesCount - 1, Bytes, CharValue)
 
     For i = 0 To 255
-        If (CharCount(i) > 0) Then lLength = lLength +
-       CharValue(i).Count * CharCount(i)
+        If (CharCount(i) > 0) Then lLength = lLength + CharValue(i).Count * CharCount(i)
     Next
     lLength = IIf(lLength Mod 8 = 0, lLength \ 8, lLength \ 8 + 1)
 
@@ -164,6 +166,7 @@ Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
     End If
 
     Char = 0
+    
     For i = 0 To (ByteLen - 1)
         Char = Char Xor ByteArray(i)
         If (i Mod 10000 = 0) Then
@@ -246,8 +249,7 @@ Public Sub EncodeByte(ByteArray() As Byte, ByteLen As Long)
             Next
         End With
         If (i Mod 10000 = 0) Then
-            NewProgress = i / ByteLen * PROGRESS_ENCODING +
-           PROGRESS_CALCCRC + PROGRESS_CALCFREQUENCY
+            NewProgress = i / ByteLen * PROGRESS_ENCODING + PROGRESS_CALCCRC + PROGRESS_CALCFREQUENCY
             If (NewProgress <> CurrProgress) Then
                 CurrProgress = NewProgress
                 RaiseEvent Progress(CurrProgress)
@@ -274,6 +276,7 @@ Public Function EncodeString(Text As String) As String
     Call EncodeByte(ByteArray, Len(Text))
     EncodeString = StrConv(ByteArray(), vbUnicode)
 End Function
+
 'Decode routine
 Public Sub DecodeByte(ByteArray() As Byte, ByteLen As Long)
     Dim i As Long, j As Long, Pos As Long, Char As Byte, CurrPos As Long
@@ -379,8 +382,7 @@ DecodeFinished:
     For i = 0 To (ResultLen - 1)
         Char = Char Xor Result(i)
         If (i Mod 10000 = 0) Then
-            NewProgress = i / ResultLen * PROGRESS_CHECKCRC +
-           PROGRESS_DECODING
+            NewProgress = i / ResultLen * PROGRESS_CHECKCRC + PROGRESS_DECODING
             If (NewProgress <> CurrProgress) Then
                 CurrProgress = NewProgress
                 RaiseEvent Progress(CurrProgress)
@@ -408,7 +410,6 @@ Private Sub CreateBitSequences(Nodes() As HUFFMANTREE, ByVal NodeIndex As Intege
         NewBytes = Bytes
         NewBytes.Data(NewBytes.Count) = 1
         NewBytes.Count = NewBytes.Count + 1
-        Call CreateBitSequences(Nodes(), Nodes(NodeIndex).RightNode,
-       NewBytes, CharValue)
+        Call CreateBitSequences(Nodes(), Nodes(NodeIndex).RightNode, NewBytes, CharValue)
     End If
 End Sub
