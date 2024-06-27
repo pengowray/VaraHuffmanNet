@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 using ICSharpCode.SharpZipLib.BZip2;
 using ICSharpCode.SharpZipLib.GZip;
-using VaraHuffman;
+using VaraVBNetHuffman;
 
 namespace VaraHuffmanTesting.DebugInfo;
 public static class DebugInfoPrinter {
 
-    private static VHuffman? Vara;
+    private static VaraHuffmanVB? Vara;
 
     public static void PrintDebugInfo(string text) {
         Console.WriteLine($"to encode    : {text}");
@@ -23,7 +23,7 @@ public static class DebugInfoPrinter {
     public static void PrintDebugInfo(byte[] bytes) {
 
         if (Vara == null) {
-            Vara = new VHuffman();
+            Vara = new VaraHuffmanVB();
             Vara.ShowDebug = false;
         }
 
@@ -40,17 +40,17 @@ public static class DebugInfoPrinter {
         MemoryStream bzip2Stream = new MemoryStream();
         BZip2.Compress(byteStream, bzip2Stream, false, 9);
 
-        var enc = Vara.EncodeByte(bytes, bytes.Length);
+        var encHEx = Vara.EncodeByte(bytes, bytes.Length);
         //Console.WriteLine("---no compression---");
-        var NoCompressionEnc = Vara.EncodeByte(bytes, bytes.Length, VHuffman.MessageType.NoCompression);
+        var encHE0 = Vara.EncodeByte(bytes, bytes.Length, VaraHuffmanVB.MessageType.NoCompression);
         //Console.WriteLine("---end no compression---");
-        var huffmanEnc = Vara.EncodeByte(bytes, bytes.Length, VHuffman.MessageType.Huffman);
+        var encHE3 = Vara.EncodeByte(bytes, bytes.Length, VaraHuffmanVB.MessageType.Huffman);
 
         //string encoded = Base64Encode(bytes); //Encoding.ASCII.GetString(bytes);
         Console.WriteLine($"byte length  : {bytes.Length} bytes (100%)");
-        Console.WriteLine($"encoded len  : {enc.Length} bytes ({(double)enc.Length / bytes.Length:P1})");
-        Console.WriteLine($"as HE0       : {NoCompressionEnc.Length /* == bytes.Length + 4 */} bytes ({(double)NoCompressionEnc.Length / bytes.Length:P1})");
-        Console.WriteLine($"as HE3       : {huffmanEnc.Length} bytes ({(double)huffmanEnc.Length / bytes.Length:P1})");
+        Console.WriteLine($"encoded len  : {encHEx.Length} bytes ({(double)encHEx.Length / bytes.Length:P1})");
+        Console.WriteLine($"as HE0       : {encHE0.Length /* == bytes.Length + 4 */} bytes ({(double)encHE0.Length / bytes.Length:P1})");
+        Console.WriteLine($"as HE3       : {encHE3.Length} bytes ({(double)encHE3.Length / bytes.Length:P1})");
         var gziplen = GzipStream.Length + 4;
         var bziplen = bzip2Stream.Length + 4;
         Console.WriteLine($"gzip in HE0  : {gziplen} bytes (gzip + 4 byte header) ({(double)gziplen / bytes.Length:P1})");
@@ -58,21 +58,21 @@ public static class DebugInfoPrinter {
         //Console.WriteLine($"encoded      : {Base64Encode(enc)}");
         Console.WriteLine($"PlainHeader  : {BitConverter.ToString(Data.ZeroBytesEncoded)}"); // + " ({Encoding.ASCII.GetString(ZeroBytesEncoded)})");
         Console.WriteLine($"HuffmanHeader: {BitConverter.ToString(Data.NormalStartEncoded)}"); // + " ({Encoding.ASCII.GetString(NormalStartEncoded)})");
-        if (enc.Length >= 4) {
-            Console.WriteLine($"encoded-head : {BitConverter.ToString(enc.Take(4).ToArray())}");
+        if (encHEx.Length >= 4) {
+            Console.WriteLine($"encoded-head : {BitConverter.ToString(encHEx.Take(4).ToArray())}");
         }
-        Console.WriteLine($"encoded-hex  : {BitConverter.ToString(enc)}");
-        Console.WriteLine($"HE0-hex      : {BitConverter.ToString(NoCompressionEnc)}");
-        Console.WriteLine($"HE3-hex      : {BitConverter.ToString(huffmanEnc)}");
+        Console.WriteLine($"encoded-hex  : {BitConverter.ToString(encHEx)}");
+        Console.WriteLine($"HE0-hex      : {BitConverter.ToString(encHE0)}");
+        Console.WriteLine($"HE3-hex      : {BitConverter.ToString(encHE3)}");
         Console.WriteLine($"gzip-hex     : {BitConverter.ToString(GzipStream.ToArray())}");
         //Console.WriteLine($"encoded-asc:\r\n{Encoding.ASCII.GetString(enc)}");
 
-        var decoded = Vara.DecodeByte(enc);
+        var decoded = Vara.DecodeByte(encHEx);
         //Console.WriteLine("--decoding H3--");
-        var decodeHuff = Vara.DecodeByte(huffmanEnc);
+        var decodeHuff = Vara.DecodeByte(encHE3);
         //Console.WriteLine("--end decoding H3--");
         //Console.WriteLine("---no compression dec---");
-        var decodeH0 = Vara.DecodeByte(NoCompressionEnc);
+        var decodeH0 = Vara.DecodeByte(encHE0);
         //Console.WriteLine("---end no compression dec---");
 
         //TODO: test gzip / bzip decompression too

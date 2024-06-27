@@ -6,14 +6,23 @@ using System.Numerics;
 
 
 static class TestCaseGenerator {
+
+    static string BasePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "HuffmanTestCases");
+    static int Seed = 0x123456;
+
     static void GenerateTestsProgram(string[] args) {
         GenerateTests();
     }
 
-    public static void GenerateTests(string testCaseDir = "HuffmanTestCases") {
+    public static void GenerateTests() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+        string testFolder = "tests";
+        var testCaseDir = BasePath == null ? testFolder : Path.Combine(BasePath, testFolder);
+
         Directory.CreateDirectory(testCaseDir);
+
+        Console.WriteLine($"Outputting tests to: {testCaseDir}");
 
         // test cases
         WriteTestCase(testCaseDir, "empty_ascii.txt", "", Encoding.ASCII);
@@ -22,10 +31,20 @@ static class TestCaseGenerator {
         WriteTestCase(testCaseDir, "repeated_char.txt", new string('a', 1000), Encoding.ASCII);
         WriteTestCase(testCaseDir, "alternating_chars.txt", string.Join("", Enumerable.Repeat("ab", 500)), Encoding.ASCII);
         WriteTestCase(testCaseDir, "all_ascii.txt", string.Join("", Enumerable.Range(32, 95).Select(i => (char)i)), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "quick_brown.txt", "The quick brown fox jumps over the lazy dog 1234567890.", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "alphabet.txt", "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "hi.txt", "Hi!", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "example.txt", "This is an example message. 73", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "newline-N.txt", "Line one\nLine two\n", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "newline-RN.txt", "Line one\r\nLine two\r\n", Encoding.ASCII);
+        WriteBinaryTestCase(testCaseDir, "sub.txt", new byte[] { (byte)'S', (byte)'U', (byte)'B', 0x1A }); // end in "SUB" character
+        WriteTestCase(testCaseDir, "abracadabra.txt", "abracadabraabracadabraabracadabra", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "skewed_freq15.txt", "aaaaaaaabbbccde", Encoding.ASCII);
+        WriteTestCase(testCaseDir, "skewed_freq38.txt", "aaaaaaaaaaaaaaabbbbbbbbccccccdddddeeee", Encoding.ASCII);
         WriteTestCase(testCaseDir, "random_ascii.txt", GenerateRandomAscii(1000), Encoding.ASCII);
         WriteTestCase(testCaseDir, "long_random_ascii.txt", GenerateRandomAscii(100000), Encoding.ASCII);
         //WriteTestCase(testCaseDir, "binary_data.txt", GenerateBinaryData(1000));
-        WriteTestCase(testCaseDir, "fibonacci.txt", GenerateFibonacciSequence(1000), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "fibonacci.txt", GenerateFibonacciSequence(1000), Encoding.ASCII); // 1000 numbers
         WriteTestCase(testCaseDir, "palindrome.txt", GeneratePalindrome(1000), Encoding.ASCII);
         WriteTestCase(testCaseDir, "utf8_text.txt", GenerateUTF8Text(), Encoding.UTF8);
         WriteTestCase(testCaseDir, "utf16_text.txt", GenerateUTF16Text(), Encoding.Unicode);
@@ -44,7 +63,7 @@ static class TestCaseGenerator {
 
         // email test cases
         WriteTestCase(testCaseDir, "short_email.txt", GenerateShortEmail(), Encoding.ASCII);
-        WriteTestCase(testCaseDir, "long_email.txt", GenerateLongEmail()), Encoding.ASCII);
+        WriteTestCase(testCaseDir, "long_email.txt", GenerateLongEmail(), Encoding.ASCII);
         WriteTestCase(testCaseDir, "multiple_emails.txt", GenerateMultipleEmails(10), Encoding.ASCII);
 
         Console.WriteLine("Test cases generated successfully.");
@@ -60,14 +79,14 @@ static class TestCaseGenerator {
     }
 
     static string GenerateRandomAscii(int length) {
-        Random random = new Random();
+        Random random = new Random(Seed);
         return new string(Enumerable.Repeat(0, length)
             .Select(_ => (char)random.Next(32, 127))
             .ToArray());
     }
 
     static string GenerateBinaryData(int length) {
-        Random random = new Random();
+        Random random = new Random(Seed);
         return string.Join("", Enumerable.Repeat(0, length)
             .Select(_ => (char)random.Next(0, 256)));
     }
@@ -85,7 +104,7 @@ static class TestCaseGenerator {
     }
 
     static string GeneratePalindrome(int length) {
-        Random random = new Random();
+        Random random = new Random(Seed);
         string firstHalf = new string(Enumerable.Repeat(0, length / 2)
             .Select(_ => (char)random.Next(97, 123))
             .ToArray());
@@ -114,7 +133,7 @@ static class TestCaseGenerator {
     }
 
     static byte[] GenerateRandomBinaryData(int length) {
-        Random random = new Random();
+        Random random = new Random(Seed);
         byte[] data = new byte[length];
         random.NextBytes(data);
         return data;
@@ -209,7 +228,7 @@ Emergency Coordinator");
             sb.AppendLine($"From: sender{i}@example.com");
             sb.AppendLine($"To: recipient{i}@example.com");
             sb.AppendLine($"Subject: {subjects[i % subjects.Length]}");
-            sb.AppendLine($"Date: {DateTime.Now.AddDays(i).ToString("ddd, d MMM yyyy HH:mm:ss K")}");
+            sb.AppendLine($"Date: {new DateTime(1999, 2, 15, 9, 0, 0, DateTimeKind.Utc).AddDays(i).ToString("ddd, d MMM yyyy HH:mm:ss K")}");
             sb.AppendLine();
             sb.AppendLine($"Dear Recipient {i},");
             sb.AppendLine();

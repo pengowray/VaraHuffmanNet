@@ -1,9 +1,9 @@
 ﻿Option Explicit On
 ' based on "VARA HUFFMAN COMPRESSION.pdf"
 
-Imports System.Runtime.InteropServices
+' Imports System.Runtime.InteropServices
 
-Public Class VHuffman
+Public Class VaraHuffmanVB
 
     Public Enum MessageType
         Auto
@@ -527,7 +527,7 @@ DecodeFinished:
 
     Private Sub Debug(text As String)
         If ShowDebug Then
-            Console.WriteLine("VHuffman debug: " + text)
+            Console.WriteLine("VHuffmanVBNet debug: " + text)
         End If
     End Sub
 

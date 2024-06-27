@@ -1,13 +1,13 @@
 ﻿using System.Text;
-using VaraHuffman;
 using VaraHuffmanTesting.DebugInfo;
+using VaraVBNetHuffman;
 
 
 void UsageExample() {
     // encoding:
     string message = "This is an example message. 73";
     byte[] bytesSequenceToEncode = Encoding.ASCII.GetBytes(message); // UTF8 and other encodings will work successfully, but may not be compatible with other systems (todo: find next best encoding for compatibility)
-    var encoder = new VHuffman();
+    var encoder = new VaraHuffmanVB();
     byte[] encodedMessage = encoder.EncodeByte(bytesSequenceToEncode);
     Console.WriteLine($"Encoded message: {BitConverter.ToString(encodedMessage)}");
 
@@ -39,6 +39,7 @@ void DebugInfoExample() {
 
 Console.WriteLine("Regenerating test files...");
 TestCaseGenerator.GenerateTests();
+EncodedTestsNet.GenerateNetEncodings();
 
 
 Console.WriteLine("Usage example");
